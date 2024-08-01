@@ -59,6 +59,11 @@ class ApplicationsList(BaseModel):
 class ApplicationsResponse(BaseModel):
     status: str
     data: Union[ApplicationsList, ErrorDetails]
+
+
+class PaginatedApplicationsResponse(BaseModel):
+    status: str
+    data: Union[ApplicationsList, ErrorDetails]
     page: int
     limit: int
     pages: int
@@ -68,6 +73,7 @@ class AppPoolData(BaseModel):
     id: int
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled']] = None
     installerId: int
+    applications: List[ApplicationData]
 
 
 class UpdatedPool(BaseModel):
@@ -81,6 +87,11 @@ class AppPool(BaseModel):
     pool: AppPoolData
 
 
+class AppPools(BaseModel):
+    appVer: int
+    pools: List[AppPoolData]
+
+
 class AppPoolResponse(BaseModel):
     status: str
-    data: Union[AppPool, ErrorDetails]
+    data: Union[AppPool, AppPools, ErrorDetails]

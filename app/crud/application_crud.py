@@ -150,9 +150,6 @@ async def get_application(app_id: int):
             return application_data
 
 
-# print(asyncio.run(get_application(1)))
-
-
 async def get_applications(pool_id: Optional[int] = None) -> list[ApplicationData]:
     query = '''SELECT 
                     a.*,
@@ -201,7 +198,79 @@ async def get_applications(pool_id: Optional[int] = None) -> list[ApplicationDat
                         images_list = ['{' + img + '}' for img in images_list]
 
                         # Parse each JSON object
-                        crm_images = []
+                        for img_str in images_list:
+                            img = json.loads(img_str)
+                            crm_image = CrmImage(
+                                id=img['id'],
+                                name=img['name'],
+                                mimeType=img['mime_type'],
+                                width=img['width'],
+                                height=img['height'],
+                                size=img['size'],
+                                path=img['path'],
+                                installerId=img['installer_id'],
+                                applicationId=img['application_id']
+                            )
+                            crm_images.append(crm_image)
+
+                    # Create ApplicationImageData object
+                    application_data = ApplicationData(
+                        id=item['id'],
+                        type=item['type'],
+                        client=item['client'],
+                        installerId=item['installer_id'],
+                        comment=item['comment'],
+                        status=item['status'],
+                        installDate=item['install_date'],
+                        poolId=item['app_pool_id'],
+                        images=crm_images
+                    )
+                    processed_data.append(application_data)
+                return processed_data
+
+
+async def get_installer_applications(current_user: str):
+    query = '''SELECT 
+                        a.*,
+                        GROUP_CONCAT(
+                            CONCAT(
+                                '{"id":', i.id, 
+                                ',"name":"', IFNULL(i.name, ''), 
+                                '","mime_type":"', IFNULL(i.mime_type, ''), 
+                                '","width":', IFNULL(i.width, 'null'), 
+                                ',"height":', IFNULL(i.height, 'null'), 
+                                ',"size":', IFNULL(i.size, 'null'), 
+                                ',"path":"', IFNULL(i.path, ''), 
+                                '","application_id":', IFNULL(i.application_id, 'null'), 
+                                ',"installer_id":', IFNULL(i.installer_id, 'null'), 
+                                '}'
+                            )
+                        ) AS images
+                    FROM 
+                        applications a
+                    LEFT JOIN 
+                        images i ON a.id = i.application_id 
+                    WHERE a.installer_id = (SELECT id FROM users WHERE login = %s) GROUP BY a.id
+                    ORDER BY a.install_date DESC'''
+
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cur:
+                await cur.execute(query, current_user)
+                results = await cur.fetchall()
+                processed_data = []
+                for item in results:
+                    # Parse the images JSON string
+                    images_str = item.get('images')
+                    crm_images = []
+                    if images_str:
+                        images_list = images_str.split('},{')
+
+                        # Properly format each JSON object
+                        images_list = [img.strip('{}') for img in images_list]
+                        images_list = ['{' + img + '}' for img in images_list]
+
+                        # Parse each JSON object
                         for img_str in images_list:
                             img = json.loads(img_str)
                             crm_image = CrmImage(
@@ -316,13 +385,184 @@ async def update_pool_status(updated_pool: UpdatedPool):
 
 
 async def get_pool(pool_id: int) -> AppPoolData:
-    query = '''SELECT * FROM app_pool ap WHERE ap.id = %s;'''
+    query = '''
+        SELECT 
+            app_pool.id AS pool_id, 
+            app_pool.status AS pool_status,
+            app_pool.installer_id AS pool_installer, 
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', applications.id, 
+                    'type', applications.type,
+                    'client', applications.client,
+                    'installerId', applications.installer_id,
+                    'comment', applications.comment,
+                    'status', applications.status,
+                    'installDate', applications.install_date,
+                    'poolId', applications.app_pool_id,
+                    'images', COALESCE((
+                        SELECT JSON_ARRAYAGG(
+                            JSON_OBJECT(
+                                'id', images.id, 
+                                'name', images.name, 
+                                'mime_type', images.mime_type, 
+                                'width', images.width, 
+                                'height', images.height,
+                                'size', images.size, 
+                                'path', images.path,
+                                'installerId', images.installer_id,
+                                'applicationId', images.application_id
+                            )
+                        )
+                        FROM images
+                        WHERE images.application_id = applications.id
+                    ), JSON_ARRAY())
+                )
+            ) AS applications
+        FROM 
+            app_pool
+        LEFT JOIN 
+            applications ON app_pool.id = applications.app_pool_id'''
+
+    if pool_id:
+        query += (" WHERE app_pool.id = %s "
+                  "GROUP BY app_pool.id, app_pool.status")
+    else:
+        query += " GROUP BY app_pool.id, app_pool.status"
 
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(query, (pool_id,))
-                r = await cur.fetchone()
-                return AppPoolData(id=r[0], status=r[1], installerId=r[2]) if r else None
+                app_pool = await cur.fetchone()
+                pool_id, pool_status, pool_installer, applications_json = app_pool
+                applications = json.loads(applications_json)
+                applications_list = []
+                for app in applications:
+                    # Parse the images JSON string
+                    images_list = app.get('images')
+                    crm_images = []
+                    if images_list:
+                        # Parse each JSON object
+                        for img in images_list:
+                            crm_image = CrmImage(
+                                id=img['id'],
+                                name=img['name'],
+                                mimeType=img['mime_type'],
+                                width=img['width'],
+                                height=img['height'],
+                                size=img['size'],
+                                path=img['path'],
+                                installerId=img['installerId'],
+                                applicationId=img['applicationId']
+                            )
+                            crm_images.append(crm_image)
 
-# asyncio.run(update_pool_status(1))
+                    # Create ApplicationImageData object
+                    application_data = ApplicationData(
+                        id=app['id'],
+                        type=app['type'],
+                        client=app['client'],
+                        installerId=app['installerId'],
+                        comment=app['comment'],
+                        status=app['status'],
+                        installDate=app['installDate'],
+                        poolId=app['poolId'],
+                        images=crm_images
+                    )
+                    applications_list.append(application_data)
+                return AppPoolData(id=pool_id, status=pool_status, installerId=pool_installer,
+                                   applications=applications_list) if app_pool else None
+
+
+async def get_pools():
+    query = '''
+    SELECT 
+        app_pool.id AS pool_id, 
+        app_pool.status AS pool_status,
+        app_pool.installer_id AS pool_installer, 
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', applications.id, 
+                'type', applications.type,
+                'client', applications.client,
+                'installerId', applications.installer_id,
+                'comment', applications.comment,
+                'status', applications.status,
+                'installDate', applications.install_date,
+                'poolId', applications.app_pool_id,
+                'images', COALESCE((
+                    SELECT JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'id', images.id, 
+                            'name', images.name, 
+                            'mime_type', images.mime_type, 
+                            'width', images.width, 
+                            'height', images.height,
+                            'size', images.size, 
+                            'path', images.path,
+                            'installerId', images.installer_id,
+                            'applicationId', images.application_id
+                        )
+                    )
+                    FROM images
+                    WHERE images.application_id = applications.id
+                ), JSON_ARRAY())
+            )
+        ) AS applications
+    FROM 
+        app_pool
+    LEFT JOIN 
+        applications ON app_pool.id = applications.app_pool_id
+    GROUP BY 
+        app_pool.id, app_pool.status;'''
+
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(query)
+                results = await cur.fetchall()
+                processed_data = []
+                for app_pool in results:
+                    pool_id, pool_status, pool_installer, applications_json = app_pool
+                    applications = json.loads(applications_json)
+                    applications_list = []
+                    for app in applications:
+                        # Parse the images JSON string
+                        images_list = app.get('images')
+                        crm_images = []
+                        if images_list:
+                            # Parse each JSON object
+                            for img in images_list:
+                                crm_image = CrmImage(
+                                    id=img['id'],
+                                    name=img['name'],
+                                    mimeType=img['mime_type'],
+                                    width=img['width'],
+                                    height=img['height'],
+                                    size=img['size'],
+                                    path=img['path'],
+                                    installerId=img['installerId'],
+                                    applicationId=img['applicationId']
+                                )
+                                crm_images.append(crm_image)
+
+                        # Create ApplicationImageData object
+                        application_data = ApplicationData(
+                            id=app['id'],
+                            type=app['type'],
+                            client=app['client'],
+                            installerId=app['installerId'],
+                            comment=app['comment'],
+                            status=app['status'],
+                            installDate=app['installDate'],
+                            poolId=app['poolId'],
+                            images=crm_images
+                        )
+                        applications_list.append(application_data)
+                    processed_data.append(AppPoolData(id=pool_id, status=pool_status, installerId=pool_installer,
+                                                      applications=applications_list))
+                return processed_data
+
+
+# print(asyncio.run(get_pool(1)))

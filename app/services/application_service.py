@@ -5,11 +5,11 @@ from fastapi import status
 from app.crud.admin_crud import is_admin
 from app.crud.application_crud import create_application, create_pool, get_apps_version, get_application, \
     get_applications, update_app, get_pool_installer, all_pool_apps_finished, set_pool_status_finished, \
-    update_pool_status, get_pool
+    update_pool_status, get_pool, get_pools, get_installer_applications
 from app.crud.images_crud import get_images_version
 from app.crud.installer_crud import get_all_installers_data
 from app.schema.application_schema import NewApplication, Application, ApplicationsList, UpdatedApplicationData, \
-    UpdatedPool, AppPool
+    UpdatedPool, AppPool, AppPools
 from app.schema.error_schema import ErrorDetails
 from app.util.exception import VtCRM_HTTPException
 
@@ -57,6 +57,13 @@ class AppService:
                                              imageVer=await get_images_version(),
                                              applications=paginated_items)
 
+    async def list_installer_apps(self, current_user: str):
+        applications = await get_installer_applications(current_user)
+
+        return ApplicationsList(appVer=await get_apps_version(),
+                                imageVer=await get_images_version(),
+                                applications=applications)
+
     async def get_app(self, app_id: int):
         application = await get_application(app_id)
         if not application:
@@ -80,6 +87,10 @@ class AppService:
         return Application(appVer=await get_apps_version(),
                            imageVer=await get_images_version(),
                            application=updated_application)
+
+    async def get_pools(self) -> AppPools:
+        pools = await get_pools()
+        return AppPools(appVer=await get_apps_version(), pools=pools)
 
     async def update_pool(self, updated_pool: UpdatedPool):
         if updated_pool.appVer != await get_apps_version():
