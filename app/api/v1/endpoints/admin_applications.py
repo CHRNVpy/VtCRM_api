@@ -44,8 +44,9 @@ async def get_application(id: int = Query(None, description="Application id"),
               response_model=ApplicationResponse,
               responses={401: {"description": "Incorrect username or password"}})
 async def update_application(updated_app: UpdatedApplicationData,
+                             id: int = Query(0, description="Application id"),
                              current_user: str = Depends(get_current_user)):
-    response = await service.update_app(updated_app)
+    response = await service.update_app(updated_app, id)
     return ApplicationResponse(status='ok', data=response)
 
 

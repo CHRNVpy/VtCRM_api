@@ -47,6 +47,16 @@ async def init_db():
                 )
 
                 await cur.execute(
+                    "CREATE TABLE IF NOT EXISTS coordinates ("
+                    "id INT AUTO_INCREMENT PRIMARY KEY, "
+                    "type TEXT, "
+                    "latitude DECIMAL, "
+                    "longitude DECIMAL, "
+                    "application_id INT, "
+                    "FOREIGN KEY(application_id) REFERENCES applications(id))"
+                )
+
+                await cur.execute(
                     "CREATE TABLE IF NOT EXISTS equipment ("
                     "id INT AUTO_INCREMENT PRIMARY KEY, "
                     "name TEXT, "
@@ -55,8 +65,10 @@ async def init_db():
                     "status TEXT, "
                     "application_id INT, "
                     "installer_id INT, "
+                    "step_id INT, "
                     "FOREIGN KEY(application_id) REFERENCES applications(id), "
-                    "FOREIGN KEY(installer_id) REFERENCES users(id))"
+                    "FOREIGN KEY(installer_id) REFERENCES users(id), "
+                    "FOREIGN KEY(step_id) REFERENCES coordinates(id))"
                 )
 
                 await cur.execute(
@@ -70,6 +82,8 @@ async def init_db():
                     "path TEXT, "
                     "application_id INT, "
                     "installer_id INT, "
+                    "step_id INT, "
                     "FOREIGN KEY(application_id) REFERENCES applications(id), "
-                    "FOREIGN KEY(installer_id) REFERENCES users(id))"
+                    "FOREIGN KEY(installer_id) REFERENCES users(id), "
+                    "FOREIGN KEY(step_id) REFERENCES coordinates(id))"
                 )

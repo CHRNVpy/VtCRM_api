@@ -4,6 +4,7 @@ import mimetypes
 from datetime import datetime
 from pathlib import Path
 
+import aiofiles
 from PIL import Image
 from fastapi import UploadFile, status
 
@@ -51,8 +52,8 @@ class ImagesService:
 
         # Save the file
         file_path = upload_dir / unique_filename
-        with file_path.open("wb") as buffer:
-            buffer.write(content)
+        async with aiofiles.open(file_path, 'wb') as buffer:
+            await buffer.write(content)
 
         image_path = f"uploads/{year}/{month}/{unique_filename}"
 

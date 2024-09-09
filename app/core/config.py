@@ -58,6 +58,20 @@ class Configs(BaseSettings):
         'host': APP_DB_HOST,
         'port': int(APP_DB_PORT),
     }
+
+    EXT_DB_NAME: str = os.getenv("EXT_DB_NAME")
+    EXT_DB_USER: str = os.getenv("EXT_DB_USER")
+    EXT_DB_PASSWORD: str = os.getenv("EXT_DB_PASS")
+    EXT_DB_HOST: str = os.getenv("EXT_DB_HOST")
+    EXT_DB_PORT: int = os.getenv("EXT_DB_PORT", "3306")
+
+    EXT_DB_CONFIG: dict = {
+        'user': EXT_DB_USER,
+        'password': EXT_DB_PASSWORD,
+        'db': EXT_DB_NAME,
+        'host': EXT_DB_HOST,
+        'port': int(EXT_DB_PORT),
+    }
 #
 #     # find query
 #     PAGE = 1

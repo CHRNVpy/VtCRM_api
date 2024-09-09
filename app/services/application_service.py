@@ -1,3 +1,4 @@
+import asyncio
 import random
 
 from fastapi import status
@@ -5,11 +6,11 @@ from fastapi import status
 from app.crud.admin_crud import is_admin
 from app.crud.application_crud import create_application, create_pool, get_apps_version, get_application, \
     get_applications, update_app, get_pool_installer, all_pool_apps_finished, set_pool_status_finished, \
-    update_pool_status, get_pool, get_pools, get_installer_applications
+    update_pool_status, get_pool, get_pools, get_installer_applications, add_step, add_step_image, add_step_equipment
 from app.crud.images_crud import get_images_version
 from app.crud.installer_crud import get_all_installers_data
 from app.schema.application_schema import NewApplication, Application, ApplicationsList, UpdatedApplicationData, \
-    UpdatedPool, AppPool, AppPools
+    UpdatedPool, AppPool, AppPools, UpdatedInstallerApplicationData
 from app.schema.error_schema import ErrorDetails
 from app.util.exception import VtCRM_HTTPException
 
@@ -24,9 +25,9 @@ class AppService:
         end = start + limit
         return data[start:end]
 
-    async def finish_pool(self, updated_app: UpdatedApplicationData):
-        if await all_pool_apps_finished(updated_app.id):
-            await set_pool_status_finished(updated_app.id)
+    async def finish_pool(self, app_id: int):
+        if await all_pool_apps_finished(app_id):
+            await set_pool_status_finished(app_id)
 
     async def create_app(self, new_app: NewApplication, current_user: str) -> Application:
         if not await is_admin(current_user):
@@ -74,16 +75,52 @@ class AppService:
                            imageVer=await get_images_version(),
                            application=application)
 
-    async def update_app(self, updated_app: UpdatedApplicationData):
-        application = await get_application(updated_app.id)
+    async def update_app(self, updated_app: UpdatedApplicationData, app_id: int):
+        application = await get_application(app_id)
+        if not application:
+            raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                      error_details=ErrorDetails(
+                                          code=f"Application doesn't exist with ID {app_id}"))
+        await update_app(updated_app, app_id)
+        updated_application = await get_application(app_id)
+        if updated_application.status == 'finished':
+            await self.finish_pool(app_id)
+        return Application(appVer=await get_apps_version(),
+                           imageVer=await get_images_version(),
+                           application=updated_application)
+
+    async def update_installer_app(self, updated_app: UpdatedInstallerApplicationData, app_id: int):
+        if updated_app.ver != await get_apps_version():
+            raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                      error_details=ErrorDetails(code="Version mismatch"))
+
+        application = await get_application(app_id)
         if not application:
             raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                       error_details=ErrorDetails(
                                           code=f"Application doesn't exist with ID {updated_app.id}"))
-        await update_app(updated_app)
-        updated_application = await get_application(updated_app.id)
-        if updated_application.status == 'finished':
-            await self.finish_pool(updated_application)
+
+        await update_app(updated_app, app_id)
+        if updated_app.status == 'finished':
+            await self.finish_pool(app_id)
+
+        # TODO if updated_app.steps need to return app object + steps with images objects and equipment objects
+        if updated_app.steps:
+            updated_application = await get_application(app_id, steps=True)
+            for step in updated_app.steps:
+                step_id = await add_step(step, app_id)
+
+                image_tasks = [add_step_image(step_id, image_id) for image_id in step.images]
+                equipment_tasks = [add_step_equipment(step_id, equipment_id) for equipment_id in step.equipments]
+
+                await asyncio.gather(*image_tasks, *equipment_tasks)
+
+                return Application(appVer=await get_apps_version(),
+                                   imageVer=await get_images_version(),
+                                   application=updated_application)
+
+        updated_application = await get_application(app_id)
+
         return Application(appVer=await get_apps_version(),
                            imageVer=await get_images_version(),
                            application=updated_application)

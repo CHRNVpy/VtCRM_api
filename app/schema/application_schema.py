@@ -3,22 +3,34 @@ from typing import Optional, Union, List, Literal
 
 from pydantic import BaseModel
 
+from app.schema.equipment_schema import Equipment
 from app.schema.error_schema import ErrorDetails
 from app.schema.images_schema import CrmImage
 
 
+class ClientData(BaseModel):
+    fullName: str
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    email: Optional[str] = None
+
+class Coordinates(BaseModel):
+    latitude: float
+    longitude: float
+
+
 class NewApplication(BaseModel):
     ver: int
-    type: str
+    type: Optional[Literal['connection', 'repair', 'line setup']]
     client: str
     comment: Optional[str] = None
+    status: Optional[Literal['active', 'pending', 'finished', 'cancelled']] = 'pending'
     installDate: datetime.datetime
     poolId: Optional[int] = None
 
 
 class UpdatedApplicationData(BaseModel):
-    id: int
-    type: Optional[str] = None
+    type: Optional[Literal['connection', 'repair', 'line setup']] = None
     client: Optional[str] = None
     installerId: Optional[int] = None
     comment: Optional[str] = None
@@ -27,10 +39,31 @@ class UpdatedApplicationData(BaseModel):
     poolId: Optional[int] = None
 
 
+class LineSetupStep(BaseModel):
+    type: Literal["start", "step", "stop"]
+    images: List[int]
+    coords: Coordinates
+    equipments: List[int]
+    created: datetime.datetime
+
+class LineSetupStepFull(BaseModel):
+    type: Literal["start", "step", "stop"]
+    images: List[CrmImage]
+    coords: Coordinates
+    equipments: List[Equipment]
+
+
+class UpdatedInstallerApplicationData(BaseModel):
+    ver: int
+    status: Optional[Literal['finished', 'cancelled']] = None
+    installedDate: Optional[datetime.datetime] = None
+    steps: Optional[List[LineSetupStep]] = None
+
+
 class ApplicationData(BaseModel):
     id: int
-    type: str
-    client: str
+    type: Optional[Literal['connection', 'repair', 'line setup']] = None
+    client: ClientData
     installerId: Optional[int] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled']] = None
@@ -38,11 +71,22 @@ class ApplicationData(BaseModel):
     poolId: Optional[int] = None
     images: List[CrmImage]
 
+class LineSetupApplicationData(BaseModel):
+    id: int
+    type: Optional[Literal['connection', 'repair', 'line setup']] = None
+    client: ClientData
+    installerId: Optional[int] = None
+    comment: Optional[str] = None
+    status: Optional[Literal['active', 'pending', 'finished', 'cancelled']] = None
+    installDate: datetime.datetime
+    poolId: Optional[int] = None
+    steps: List[LineSetupStepFull]
+
 
 class Application(BaseModel):
     appVer: int
     imageVer: int
-    application: ApplicationData
+    application: Union[ApplicationData, LineSetupApplicationData]
 
 
 class ApplicationResponse(BaseModel):
