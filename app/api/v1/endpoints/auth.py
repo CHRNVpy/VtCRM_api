@@ -8,14 +8,13 @@ from app.services.auth_service import AuthService
 from app.services.current_user_service import get_current_user
 
 router = APIRouter(
-    prefix="/auth",
     tags=["auth"],
 )
 
 service = AuthService()
 
 
-@router.post("/access_token",
+@router.post("/auth",
              response_model=AuthResponse,
              responses={401: {"description": "Incorrect username or password"}})
 async def get_access_token(user: User):
@@ -23,7 +22,7 @@ async def get_access_token(user: User):
     return AuthResponse(status='ok', data=result)
 
 
-@router.post("/refresh_token",
+@router.post("/refresh-token",
              response_model=AuthResponse,
              responses={401: {"description": "Invalid refresh token"}})
 async def refresh_token(request: RefreshToken):

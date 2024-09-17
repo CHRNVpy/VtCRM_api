@@ -19,7 +19,7 @@ async def get_user(login: str):
                         FROM users
                         WHERE login = %s''', (login,))
                 result = await cur.fetchone()
-                return User(login=result[0], password=result[1], role=result[2])
+                return User(login=result[0], password=result[1], role=result[2]) if result else None
 
 
 async def get_user_data(login: str):
