@@ -422,7 +422,7 @@ async def update_app(updated_app: UpdatedApplicationData):
     # Join updates with commas
     query += ", ".join(updates)
 
-    # Add the WHERE clause to specify the installer to update
+    # Add the WHERE clause to specify the entity to update
     query += " WHERE id = %s;"
     params.append(updated_app.id)
 
@@ -466,7 +466,7 @@ async def update_app(updated_app: Union[UpdatedApplicationData, UpdatedInstaller
         # Join updates with commas
         query += ", ".join(updates)
 
-        # Add the WHERE clause to specify the installer to update
+        # Add the WHERE clause to specify the entity to update
         query += " WHERE id = %s;"
         params.append(app_id)
 
@@ -694,7 +694,7 @@ async def get_pools():
                         )
                         applications_list.append(application_data)
                     processed_data.append(AppPoolData(id=pool_id, status=pool_status, installerId=pool_installer,
-                                                      applications=applications_list))
+                                                      entities=applications_list))
                 return processed_data
 
 async def add_step(step: LineSetupStep, app_id: int):

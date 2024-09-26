@@ -37,17 +37,21 @@ class Equipment(BaseModel):
 
 class SingleEquipment(BaseModel):
     ver: int
-    equipment: Equipment
+    entity: Equipment
 
 
 class EquipmentList(BaseModel):
     ver: int
-    equipment: List[Equipment]
+    entities: List[Equipment]
+    page: int
+    perPage: int
+    pages: int
+    totalRows: int
 
 
 class EquipmentResponse(BaseModel):
     status: str
-    data: Union[SingleEquipment, ErrorDetails]
+    data: Union[SingleEquipment, EquipmentList, ErrorDetails]
 
 
 class PaginatedEquipmentResponse(BaseModel):

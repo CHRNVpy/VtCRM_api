@@ -46,7 +46,7 @@ class AppService:
         created_app_id = await create_application(new_app, installer_id)
         app = await get_application(created_app_id)
         return Application(appVer=await get_apps_version(),
-                           imageVer=await get_images_version(), application=app)
+                           imageVer=await get_images_version(), entity=app)
 
     async def list_apps(self, page: int, limit: int, pool_id: int):
         applications = await get_applications(pool_id)
@@ -54,16 +54,27 @@ class AppService:
         total_items = len(applications)
         paginated_items = self.paginate(applications, page, limit)
         total_pages = (total_items + limit - 1) // limit
-        return total_pages, ApplicationsList(appVer=await get_apps_version(),
+        return ApplicationsList(appVer=await get_apps_version(),
                                              imageVer=await get_images_version(),
-                                             applications=paginated_items)
+                                             entities=paginated_items,
+                                             page=page,
+                                             perPage=limit,
+                                             pages=total_pages,
+                                             totalRows=total_items)
 
-    async def list_installer_apps(self, current_user: str):
+    async def list_installer_apps(self, current_user: str, page: int, limit: int):
         applications = await get_installer_applications(current_user)
 
+        total_items = len(applications)
+        paginated_items = self.paginate(applications, page, limit)
+        total_pages = (total_items + limit - 1) // limit
         return ApplicationsList(appVer=await get_apps_version(),
                                 imageVer=await get_images_version(),
-                                applications=applications)
+                                entities=paginated_items,
+                                page=page,
+                                perPage=limit,
+                                pages=total_pages,
+                                totalRows=total_items)
 
     async def get_app(self, app_id: int):
         application = await get_application(app_id)
@@ -73,42 +84,41 @@ class AppService:
 
         return Application(appVer=await get_apps_version(),
                            imageVer=await get_images_version(),
-                           application=application)
+                           entity=application)
 
-    async def update_app(self, updated_app: UpdatedApplicationData, app_id: int):
-        application = await get_application(app_id)
+    async def update_app(self, updated_app: UpdatedApplicationData):
+        application = await get_application(updated_app.id)
         if not application:
             raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                       error_details=ErrorDetails(
-                                          code=f"Application doesn't exist with ID {app_id}"))
-        await update_app(updated_app, app_id)
-        updated_application = await get_application(app_id)
+                                          code=f"Application doesn't exist with ID {updated_app.id}"))
+        await update_app(updated_app, updated_app.id)
+        updated_application = await get_application(updated_app.id)
         if updated_application.status == 'finished':
-            await self.finish_pool(app_id)
+            await self.finish_pool(updated_app.id)
         return Application(appVer=await get_apps_version(),
                            imageVer=await get_images_version(),
-                           application=updated_application)
+                           entity=updated_application)
 
-    async def update_installer_app(self, updated_app: UpdatedInstallerApplicationData, app_id: int):
+    async def update_installer_app(self, updated_app: UpdatedInstallerApplicationData):
         if updated_app.ver != await get_apps_version():
             raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                       error_details=ErrorDetails(code="Version mismatch"))
 
-        application = await get_application(app_id)
+        application = await get_application(updated_app.id)
         if not application:
             raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                       error_details=ErrorDetails(
                                           code=f"Application doesn't exist with ID {updated_app.id}"))
 
-        await update_app(updated_app, app_id)
+        await update_app(updated_app, updated_app.id)
         if updated_app.status == 'finished':
-            await self.finish_pool(app_id)
+            await self.finish_pool(updated_app.id)
 
-        # TODO if updated_app.steps need to return app object + steps with images objects and equipment objects
         if updated_app.steps:
-            updated_application = await get_application(app_id, steps=True)
+            updated_application = await get_application(updated_app.id, steps=True)
             for step in updated_app.steps:
-                step_id = await add_step(step, app_id)
+                step_id = await add_step(step, updated_app.id)
 
                 image_tasks = [add_step_image(step_id, image_id) for image_id in step.images]
                 equipment_tasks = [add_step_equipment(step_id, equipment_id) for equipment_id in step.equipments]
@@ -117,17 +127,17 @@ class AppService:
 
                 return Application(appVer=await get_apps_version(),
                                    imageVer=await get_images_version(),
-                                   application=updated_application)
+                                   entity=updated_application)
 
-        updated_application = await get_application(app_id)
+        updated_application = await get_application(updated_app.id)
 
         return Application(appVer=await get_apps_version(),
                            imageVer=await get_images_version(),
-                           application=updated_application)
+                           entity=updated_application)
 
     async def get_pools(self) -> AppPools:
         pools = await get_pools()
-        return AppPools(appVer=await get_apps_version(), pools=pools)
+        return AppPools(appVer=await get_apps_version(), entities=pools)
 
     async def update_pool(self, updated_pool: UpdatedPool):
         if updated_pool.appVer != await get_apps_version():
@@ -139,4 +149,4 @@ class AppService:
                                           code=f"Pool doesn't exist with ID {updated_pool.id}"))
         await update_pool_status(updated_pool)
         updated_pool = await get_pool(updated_pool.id)
-        return AppPool(appVer=await get_apps_version(), pool=updated_pool)
+        return AppPool(appVer=await get_apps_version(), entity=updated_pool)

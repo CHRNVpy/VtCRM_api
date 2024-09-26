@@ -1,5 +1,5 @@
 # from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Query
 
 from app.schema.installer_schema import InstallerResponse, NewInstaller, InstallersResponse, UpdateInstaller
 from app.services.current_user_service import get_current_user
@@ -12,7 +12,7 @@ router = APIRouter(
 service = InstallerService()
 
 
-@router.get("/installer-collection",
+@router.get("/entity-collection",
             response_model=InstallersResponse,
             responses={401: {"description": "Incorrect username or password"}})
 async def get_installers(current_user: str = Depends(get_current_user)):
@@ -20,7 +20,7 @@ async def get_installers(current_user: str = Depends(get_current_user)):
     return InstallersResponse(status='ok', data=response)
 
 
-@router.post("/installer",
+@router.post("/entity",
              response_model=InstallerResponse,
              responses={401: {"description": "Incorrect username or password"}})
 async def create_installer(installer: NewInstaller, current_user: str = Depends(get_current_user)):
@@ -28,20 +28,18 @@ async def create_installer(installer: NewInstaller, current_user: str = Depends(
     return InstallerResponse(status='ok', data=response)
 
 
-@router.get("/installer",
+@router.get("/entity",
             response_model=InstallerResponse,
             responses={401: {"description": "Incorrect username or password"}})
-async def get_installer(request: Request, current_user: str = Depends(get_current_user)):
-    installer_id = request.query_params.get('id')
-    response = await service.get_installer(current_user, int(installer_id))
+async def get_installer(id: int = Query(0, description="Installer id"), current_user: str = Depends(get_current_user)):
+    response = await service.get_installer(current_user, id)
     return InstallerResponse(status='ok', data=response)
 
 
-@router.patch("/installer",
+@router.patch("/entity",
               # response_model=InstallerResponse,
               responses={401: {"description": "Incorrect username or password"}})
-async def update_installer(updated_installer: UpdateInstaller, request: Request,
+async def update_installer(updated_installer: UpdateInstaller,
                            current_user: str = Depends(get_current_user)):
-    installer_id = request.query_params.get('id')
-    response = await service.update_installer(int(installer_id), updated_installer)
+    response = await service.update_installer(updated_installer)
     return InstallerResponse(status='ok', data=response)

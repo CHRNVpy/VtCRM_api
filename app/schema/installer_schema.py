@@ -1,4 +1,4 @@
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Literal
 
 from pydantic import BaseModel
 
@@ -12,14 +12,16 @@ class NewInstaller(BaseModel):
     middlename: str
     lastname: str
     phone: str
-    status: Optional[str] = 'active'
-    role: str = 'installer'
+    status: Optional[Literal['active', 'inactive']] = 'active'
+    role: str = 'entity'
     ver: int
     hash: str
 
 
 class Installer(BaseModel):
     id: int
+    login: str
+    password: str
     firstname: str
     middlename: str
     lastname: str
@@ -29,6 +31,7 @@ class Installer(BaseModel):
 
 
 class UpdateInstaller(BaseModel):
+    id: int
     firstname: Optional[str] = ''
     middlename: Optional[str] = ''
     lastname: Optional[str] = ''
@@ -39,17 +42,17 @@ class UpdateInstaller(BaseModel):
 
 class CurrentInstaller(BaseModel):
     ver: int
-    installer: Installer
+    entity: Installer
 
 
 class NewInstallerResponse(BaseModel):
     ver: int
-    installer: Installer
+    entity: Installer
 
 
 class Installers(BaseModel):
     ver: int
-    installers: List[Installer]
+    entities: List[Installer]
 
 
 class InstallersResponse(BaseModel):

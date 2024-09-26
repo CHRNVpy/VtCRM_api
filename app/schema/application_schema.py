@@ -30,6 +30,7 @@ class NewApplication(BaseModel):
 
 
 class UpdatedApplicationData(BaseModel):
+    id: int
     type: Optional[Literal['connection', 'repair', 'line setup']] = None
     client: Optional[str] = None
     installerId: Optional[int] = None
@@ -54,6 +55,7 @@ class LineSetupStepFull(BaseModel):
 
 
 class UpdatedInstallerApplicationData(BaseModel):
+    id: int
     ver: int
     status: Optional[Literal['finished', 'cancelled']] = None
     installedDate: Optional[datetime.datetime] = None
@@ -86,7 +88,7 @@ class LineSetupApplicationData(BaseModel):
 class Application(BaseModel):
     appVer: int
     imageVer: int
-    application: Union[ApplicationData, LineSetupApplicationData]
+    entity: Union[ApplicationData, LineSetupApplicationData]
 
 
 class ApplicationResponse(BaseModel):
@@ -97,7 +99,11 @@ class ApplicationResponse(BaseModel):
 class ApplicationsList(BaseModel):
     appVer: int
     imageVer: int
-    applications: List[ApplicationData]
+    entities: List[ApplicationData]
+    page: int
+    perPage: int
+    pages: int
+    totalRows: int
 
 
 class ApplicationsResponse(BaseModel):
@@ -117,7 +123,7 @@ class AppPoolData(BaseModel):
     id: int
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled']] = None
     installerId: int
-    applications: List[ApplicationData]
+    entities: List[ApplicationData]
 
 
 class UpdatedPool(BaseModel):
@@ -128,12 +134,12 @@ class UpdatedPool(BaseModel):
 
 class AppPool(BaseModel):
     appVer: int
-    pool: AppPoolData
+    entity: AppPoolData
 
 
 class AppPools(BaseModel):
     appVer: int
-    pools: List[AppPoolData]
+    entities: List[AppPoolData]
 
 
 class AppPoolResponse(BaseModel):

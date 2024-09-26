@@ -34,7 +34,7 @@ class InstallerService:
                 raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                           error_details=ErrorDetails(code=e))
         installer = await get_installer_data_by_hash(new_installer.hash)
-        return NewInstallerResponse(ver=installer.id, installer=installer)
+        return NewInstallerResponse(ver=installer.id, entity=installer)
 
     async def get_all_installers(self, current_user: str) -> Installers:
         if not await is_admin(current_user):
@@ -42,7 +42,7 @@ class InstallerService:
                                       error_details=ErrorDetails(code="You're not an admin"))
         version = await get_users_version()
         installers = await get_all_installers_data()
-        return Installers(ver=version, installers=installers)
+        return Installers(ver=version, entities=installers)
 
     async def get_installer(self, current_user: str, installer_id: int):
         if not await is_admin(current_user):
@@ -52,16 +52,16 @@ class InstallerService:
         if not installer:
             raise VtCRM_HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                       error_details=ErrorDetails(code="Installer ID not found"))
-        return CurrentInstaller(ver=await get_users_version(), installer=installer)
+        return CurrentInstaller(ver=await get_users_version(), entity=installer)
 
-    async def update_installer(self, installer_id: int, updated_installer: UpdateInstaller):
+    async def update_installer(self, updated_installer: UpdateInstaller):
         # if updated_installer.ver != await get_version():
         #     raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         #                               error_details=ErrorDetails(code="Version mismatch"))
-        installer = await get_installer_data_by_id(installer_id)
+        installer = await get_installer_data_by_id(updated_installer.id)
         if not installer:
             raise VtCRM_HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                       error_details=ErrorDetails(code="Installer ID not found"))
-        await update_installer(updated_installer, installer_id)
-        updated_installer = await get_installer_data_by_id(installer_id)
-        return CurrentInstaller(ver=await get_users_version(), installer=updated_installer)
+        await update_installer(updated_installer, updated_installer.id)
+        updated_installer = await get_installer_data_by_id(updated_installer.id)
+        return CurrentInstaller(ver=await get_users_version(), entity=updated_installer)

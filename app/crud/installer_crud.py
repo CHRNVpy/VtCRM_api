@@ -79,7 +79,9 @@ async def get_installer_data_by_hash(hash: str):
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    '''SELECT 
+                    '''SELECT
+                          login as login,
+                          password as password, 
                           firstname AS firstname,
                           middlename AS middlename,
                           lastname AS lastname,
@@ -90,8 +92,9 @@ async def get_installer_data_by_hash(hash: str):
                         FROM users
                         WHERE hash = %s''', (hash,))
                 result = await cur.fetchone()
-                return Installer(firstname=result[0], middlename=result[1], lastname=result[2],
-                                 phone=result[3], status=result[4], role=result[5], id=result[6])
+                return Installer(login=result[0], password=result[1], firstname=result[2], middlename=result[3],
+                                 lastname=result[4], phone=result[5], status=result[6], role=result[7],
+                                 id=result[8]) if result else None
 
 
 async def get_installer_data_by_id(installer_id: int):
@@ -99,7 +102,9 @@ async def get_installer_data_by_id(installer_id: int):
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    '''SELECT 
+                    '''SELECT
+                          login as login,
+                          password as password, 
                           firstname AS firstname,
                           middlename AS middlename,
                           lastname AS lastname,
@@ -110,8 +115,9 @@ async def get_installer_data_by_id(installer_id: int):
                         FROM users
                         WHERE id = %s''', (installer_id,))
                 result = await cur.fetchone()
-                return Installer(firstname=result[0], middlename=result[1], lastname=result[2],
-                                 phone=result[3], status=result[4], role=result[5], id=result[6]) if result else None
+                return Installer(login=result[0], password=result[1], firstname=result[2], middlename=result[3],
+                                 lastname=result[4], phone=result[5], status=result[6], role=result[7],
+                                 id=result[8]) if result else None
 
 
 async def hash_exists(hash: str):
@@ -119,7 +125,7 @@ async def hash_exists(hash: str):
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    '''SELECT hash FROM users WHERE role = "installer"''')
+                    '''SELECT hash FROM users WHERE role = "entity"''')
                 results = await cur.fetchall()
                 hashes = [r[0] for r in results if results]
                 return True if hash in hashes else False
@@ -147,7 +153,6 @@ async def get_all_installers_data():
                           END, 
                           lastname''')
                 results = await cur.fetchall()
-                print(results)
                 return [Installer(firstname=result[0], middlename=result[1], lastname=result[2],
                                   phone=result[3], status=result[4], role=result[5], id=result[6])
                         for result in results if results]
@@ -182,7 +187,7 @@ async def update_installer(updated_installer: UpdateInstaller, installer_id: int
     # Join updates with commas
     query += ", ".join(updates)
 
-    # Add the WHERE clause to specify the installer to update
+    # Add the WHERE clause to specify the entity to update
     query += f" WHERE id = {installer_id};"
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:

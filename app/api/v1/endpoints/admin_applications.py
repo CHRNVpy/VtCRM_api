@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, Query
 
 from app.schema.application_schema import NewApplication, ApplicationResponse, PaginatedApplicationsResponse, \
-    UpdatedApplicationData, UpdatedPool, AppPoolResponse
+    UpdatedApplicationData, UpdatedPool, AppPoolResponse, ApplicationsResponse
 from app.services.application_service import AppService
 from app.services.current_user_service import get_current_user
 
@@ -13,17 +13,17 @@ router = APIRouter(
 service = AppService()
 
 
-@router.get("/admin-application-collection",
-            response_model=PaginatedApplicationsResponse,
+@router.get("/admin-entity-collection",
+            response_model=ApplicationsResponse,
             responses={401: {"description": "Incorrect username or password"}})
-async def get_applications(page: int = Query(1, ge=1), limit: int = Query(10, le=100),
+async def get_applications(page: int = Query(1, ge=1), per_page: int = Query(10, le=100),
                            pool_id: int = Query(None, description="Filters by pool"),
                            current_user: str = Depends(get_current_user)):
-    total_pages, applications = await service.list_apps(page, limit, pool_id)
-    return PaginatedApplicationsResponse(status='ok', data=applications, page=page, limit=limit, pages=total_pages)
+    applications = await service.list_apps(page, per_page, pool_id)
+    return ApplicationsResponse(status='ok', data=applications)
 
 
-@router.post("/admin-application",
+@router.post("/admin-entity",
              response_model=ApplicationResponse,
              responses={401: {"description": "Incorrect username or password"}})
 async def create_application(new_app: NewApplication, current_user: str = Depends(get_current_user)):
@@ -31,7 +31,7 @@ async def create_application(new_app: NewApplication, current_user: str = Depend
     return ApplicationResponse(status='ok', data=response)
 
 
-@router.get("/admin-application",
+@router.get("/admin-entity",
             response_model=ApplicationResponse,
             responses={401: {"description": "Incorrect username or password"}})
 async def get_application(id: int = Query(None, description="Application id"),
@@ -40,13 +40,12 @@ async def get_application(id: int = Query(None, description="Application id"),
     return ApplicationResponse(status='ok', data=response)
 
 
-@router.patch("/admin-application",
+@router.patch("/admin-entity",
               response_model=ApplicationResponse,
               responses={401: {"description": "Incorrect username or password"}})
 async def update_application(updated_app: UpdatedApplicationData,
-                             id: int = Query(0, description="Application id"),
                              current_user: str = Depends(get_current_user)):
-    response = await service.update_app(updated_app, id)
+    response = await service.update_app(updated_app)
     return ApplicationResponse(status='ok', data=response)
 
 

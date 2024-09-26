@@ -12,12 +12,12 @@ service = EquipmentService()
 
 
 @router.get("/equipment-collection",
-            response_model=PaginatedEquipmentResponse,
+            response_model=EquipmentResponse,
             responses={401: {"description": "Incorrect username or password"}})
-async def get_all_equipment(page: int = Query(1, ge=1), limit: int = Query(10, le=100),
+async def get_all_equipment(page: int = Query(1, ge=1), per_page: int = Query(10, le=100),
                             current_user: str = Depends(get_current_user)):
-    total_pages, equipment = await service.list_equipment(page, limit)
-    return PaginatedEquipmentResponse(status='ok', data=equipment, page=page, limit=limit, pages=total_pages)
+    equipment = await service.list_equipment(page, per_page)
+    return EquipmentResponse(status='ok', data=equipment)
 
 
 @router.post("/equipment",

@@ -22,7 +22,7 @@ class EquipmentService:
                                       error_details=ErrorDetails(code="Version mismatch"))
         new_equipment_id = await create_equipment(new_item)
         equipment = await get_equipment_by_id(new_equipment_id)
-        return SingleEquipment(ver=await get_equipment_version(), equipment=equipment)
+        return SingleEquipment(ver=await get_equipment_version(), entity=equipment)
 
     async def get_equipment(self, equipment_id: int):
         current_version = await get_equipment_version()
@@ -33,7 +33,7 @@ class EquipmentService:
         if not equipment:
             raise VtCRM_HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                       error_details=ErrorDetails(code="Equipment ID not found"))
-        return SingleEquipment(ver=current_version, equipment=equipment)
+        return SingleEquipment(ver=current_version, entity=equipment)
 
     async def update_equipment(self, equipment: UpdatedEquipment, equipment_id: int):
         current_version = await get_equipment_version()
@@ -45,7 +45,7 @@ class EquipmentService:
                                       error_details=ErrorDetails(code="Equipment ID required"))
         await update_equipment(equipment, equipment_id)
         equipment = await get_equipment_by_id(equipment_id)
-        return SingleEquipment(ver=current_version, equipment=equipment)
+        return SingleEquipment(ver=current_version, entity=equipment)
 
     async def list_equipment(self, page: int, limit: int):
         version = await get_equipment_version()
@@ -56,4 +56,5 @@ class EquipmentService:
         total_items = len(equipment)
         paginated_items = self.paginate(equipment, page, limit)
         total_pages = (total_items + limit - 1) // limit
-        return total_pages, EquipmentList(ver=version, equipment=paginated_items)
+        return EquipmentList(ver=version, entities=paginated_items, page=page, perPage=limit,
+                                          pages=total_pages, totalRows=total_items)

@@ -25,7 +25,7 @@ class CrmImage(BaseModel):
 
 class ImageVersion(BaseModel):
     ver: int
-    image: CrmImage
+    entity: CrmImage
 
 
 class ImageResponse(BaseModel):
