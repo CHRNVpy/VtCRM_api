@@ -11,7 +11,7 @@ router = APIRouter(
 service = ImagesService()
 
 
-@router.post("/entity-image",
+@router.post("/image",
              response_model=ImageResponse,
              responses={401: {"description": "Invalid access token"}})
 async def get_image(file: UploadFile = File(...), metadata: str = Form(...),

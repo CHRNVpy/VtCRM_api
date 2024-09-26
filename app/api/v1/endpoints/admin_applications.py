@@ -13,7 +13,7 @@ router = APIRouter(
 service = AppService()
 
 
-@router.get("/admin-entity-collection",
+@router.get("/admin-applications-collection",
             response_model=ApplicationsResponse,
             responses={401: {"description": "Incorrect username or password"}})
 async def get_applications(page: int = Query(1, ge=1), per_page: int = Query(10, le=100),
@@ -23,7 +23,7 @@ async def get_applications(page: int = Query(1, ge=1), per_page: int = Query(10,
     return ApplicationsResponse(status='ok', data=applications)
 
 
-@router.post("/admin-entity",
+@router.post("/admin-application",
              response_model=ApplicationResponse,
              responses={401: {"description": "Incorrect username or password"}})
 async def create_application(new_app: NewApplication, current_user: str = Depends(get_current_user)):
@@ -31,7 +31,7 @@ async def create_application(new_app: NewApplication, current_user: str = Depend
     return ApplicationResponse(status='ok', data=response)
 
 
-@router.get("/admin-entity",
+@router.get("/admin-application",
             response_model=ApplicationResponse,
             responses={401: {"description": "Incorrect username or password"}})
 async def get_application(id: int = Query(None, description="Application id"),
@@ -40,7 +40,7 @@ async def get_application(id: int = Query(None, description="Application id"),
     return ApplicationResponse(status='ok', data=response)
 
 
-@router.patch("/admin-entity",
+@router.patch("/admin-application",
               response_model=ApplicationResponse,
               responses={401: {"description": "Incorrect username or password"}})
 async def update_application(updated_app: UpdatedApplicationData,

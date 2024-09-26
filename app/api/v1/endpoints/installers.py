@@ -12,7 +12,7 @@ router = APIRouter(
 service = InstallerService()
 
 
-@router.get("/entity-collection",
+@router.get("/installers-collection",
             response_model=InstallersResponse,
             responses={401: {"description": "Incorrect username or password"}})
 async def get_installers(current_user: str = Depends(get_current_user)):
@@ -20,7 +20,7 @@ async def get_installers(current_user: str = Depends(get_current_user)):
     return InstallersResponse(status='ok', data=response)
 
 
-@router.post("/entity",
+@router.post("/installer",
              response_model=InstallerResponse,
              responses={401: {"description": "Incorrect username or password"}})
 async def create_installer(installer: NewInstaller, current_user: str = Depends(get_current_user)):
@@ -28,7 +28,7 @@ async def create_installer(installer: NewInstaller, current_user: str = Depends(
     return InstallerResponse(status='ok', data=response)
 
 
-@router.get("/entity",
+@router.get("/installer",
             response_model=InstallerResponse,
             responses={401: {"description": "Incorrect username or password"}})
 async def get_installer(id: int = Query(0, description="Installer id"), current_user: str = Depends(get_current_user)):
@@ -36,7 +36,7 @@ async def get_installer(id: int = Query(0, description="Installer id"), current_
     return InstallerResponse(status='ok', data=response)
 
 
-@router.patch("/entity",
+@router.patch("/installer",
               # response_model=InstallerResponse,
               responses={401: {"description": "Incorrect username or password"}})
 async def update_installer(updated_installer: UpdateInstaller,
