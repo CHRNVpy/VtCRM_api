@@ -6,4 +6,4 @@ from pydantic import BaseModel
 class User(BaseModel):
     login: str
     password: str
-    role: Optional[Literal["admin", "installer"]]
+    role: Optional[Literal["admin", "installer"]] = "admin"

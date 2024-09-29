@@ -145,7 +145,8 @@ async def get_all_installers_data():
                           phone AS phone,
                           status As status,
                           role AS role,
-                          id AS user_id
+                          id AS user_id,
+                          hash AS hash
                         FROM users
                         WHERE role = 'installer'
                         ORDER BY 
@@ -156,7 +157,8 @@ async def get_all_installers_data():
                           lastname''')
                 results = await cur.fetchall()
                 return [Installer(login=result[0], password="", firstname=result[1], middlename=result[2],
-                                  lastname=result[3], phone=result[4], status=result[5], role=result[6], id=result[7])
+                                  lastname=result[3], phone=result[4], status=result[5], role=result[6], id=result[7],
+                                  hash=result[8])
                         for result in results if results]
 
 
