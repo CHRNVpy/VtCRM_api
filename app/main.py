@@ -1,7 +1,8 @@
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
@@ -59,6 +60,25 @@ class AppCreator:
                 content={
                     "status": "error",
                     "data": exc.error_details.model_dump()
+                }
+            )
+
+        @self.app.exception_handler(RequestValidationError)
+        async def validation_exception_handler(request: Request, exc: RequestValidationError):
+            errors = []
+            for error in exc.errors():
+                error_detail = {
+                    "location": error["loc"],
+                    "message": error["msg"],
+                    "error_type": error["type"]
+                }
+                errors.append(error_detail)
+
+            return JSONResponse(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                content={
+                    "status": "error",
+                    "data": errors
                 }
             )
 

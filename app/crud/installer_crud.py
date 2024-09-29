@@ -137,6 +137,7 @@ async def get_all_installers_data():
             async with conn.cursor() as cur:
                 await cur.execute(
                     '''SELECT 
+                          login AS login,
                           firstname AS firstname,
                           middlename AS middlename,
                           lastname AS lastname,
@@ -153,8 +154,8 @@ async def get_all_installers_data():
                           END, 
                           lastname''')
                 results = await cur.fetchall()
-                return [Installer(firstname=result[0], middlename=result[1], lastname=result[2],
-                                  phone=result[3], status=result[4], role=result[5], id=result[6])
+                return [Installer(login=result[0], password="", firstname=result[1], middlename=result[2],
+                                  lastname=result[3], phone=result[4], status=result[5], role=result[6], id=result[7])
                         for result in results if results]
 
 

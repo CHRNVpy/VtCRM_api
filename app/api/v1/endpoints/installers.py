@@ -12,7 +12,7 @@ router = APIRouter(
 service = InstallerService()
 
 
-@router.get("/installers-collection",
+@router.get("/installer-collection",
             response_model=InstallersResponse,
             responses={401: {"description": "Incorrect username or password"}})
 async def get_installers(current_user: str = Depends(get_current_user)):
