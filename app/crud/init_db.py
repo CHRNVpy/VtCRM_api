@@ -14,7 +14,7 @@ async def init_db():
                     "firstname TEXT, "
                     "lastname TEXT, "
                     "middlename TEXT, "
-                    "phone VARCHAR(20) UNIQUE, "
+                    "phone VARCHAR(20), "
                     "status TEXT, "
                     "login VARCHAR(255) UNIQUE, "
                     "password TEXT, "

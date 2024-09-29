@@ -93,13 +93,14 @@ async def get_installer_data_by_hash(hash: str):
                           phone AS phone,
                           status As status,
                           role AS role,
-                          id AS user_id
+                          id AS user_id,
+                          hash AS hash
                         FROM users
                         WHERE hash = %s''', (hash,))
                 result = await cur.fetchone()
                 return Installer(login=result[0], password=result[1], firstname=result[2], middlename=result[3],
                                  lastname=result[4], phone=result[5], status=result[6], role=result[7],
-                                 id=result[8]) if result else None
+                                 id=result[8], hash=result[9]) if result else None
 
 
 async def get_installer_data_by_id(installer_id: int):
@@ -130,11 +131,9 @@ async def hash_exists(hash: str):
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(
-                    '''SELECT hash FROM users WHERE role = "entity"''')
-                results = await cur.fetchall()
-                hashes = [r[0] for r in results if results]
-                return True if hash in hashes else False
+                await cur.execute('''SELECT hash FROM users WHERE hash = %s''', (hash,))
+                result = await cur.fetchone()
+                return True if result else False
 
 
 async def get_all_installers_data():

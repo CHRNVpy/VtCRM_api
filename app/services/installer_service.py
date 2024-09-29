@@ -27,14 +27,15 @@ class InstallerService:
             raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(code="Version mismatch"))
         if not await hash_exists(new_installer.hash):
-            new_installer.login = self.generate_login()
+            if not new_installer.login:
+                new_installer.login = self.generate_login()
             try:
                 await add_installer(new_installer)
             except Exception as e:
                 raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                           error_details=ErrorDetails(code=str(e)))
         installer = await get_installer_data_by_hash(new_installer.hash)
-        return NewInstallerResponse(ver=installer.id, entity=installer)
+        return NewInstallerResponse(ver=await get_users_version(), entity=installer)
 
     async def get_all_installers(self, current_user: str) -> Installers:
         if not await is_admin(current_user):
