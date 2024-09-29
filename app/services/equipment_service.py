@@ -18,7 +18,7 @@ class EquipmentService:
 
     async def add_equipment(self, new_item: NewEquipment):
         if new_item.ver != await get_equipment_version():
-            raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(code="Version mismatch"))
         new_equipment_id = await create_equipment(new_item)
         equipment = await get_equipment_by_id(new_equipment_id)
@@ -38,7 +38,7 @@ class EquipmentService:
     async def update_equipment(self, equipment: UpdatedEquipment, equipment_id: int):
         current_version = await get_equipment_version()
         if equipment.ver != current_version:
-            raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(code="Version mismatch"))
         if not equipment_id:
             raise VtCRM_HTTPException(status_code=status.HTTP_404_NOT_FOUND,
