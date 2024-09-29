@@ -3,6 +3,7 @@ import asyncio
 import aiomysql
 
 from app.core.config import configs
+from app.schema.auth_schema import Me
 from app.schema.installer_schema import Installer, UpdateInstaller
 from app.schema.user_schema import User
 
@@ -28,18 +29,22 @@ async def get_user_data(login: str):
             async with conn.cursor() as cur:
                 await cur.execute(
                     '''SELECT 
+                          login AS login,
+                          password AS password,
                           firstname AS firstname,
                           middlename AS middlename,
                           lastname AS lastname,
                           phone AS phone,
                           status As status,
                           role AS role,
-                          id AS user_id
+                          id AS user_id,
+                          hash AS hash
                         FROM users
                         WHERE login = %s''', (login,))
                 result = await cur.fetchone()
-                return Installer(firstname=result[0], middlename=result[1], lastname=result[2],
-                                 phone=result[3], status=result[4], role=result[5], id=result[6])
+                return Me(login=result[0], password=result[1], firstname=result[2], middlename=result[3],
+                                 lastname=result[4], phone=result[5], status=result[6], role=result[7], id=result[8],
+                                 hash=result[9])
 
 
 async def save_refresh_token(user: str, password: str, refresh_token: str):

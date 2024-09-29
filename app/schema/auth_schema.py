@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 
 from pydantic import BaseModel
 
@@ -16,6 +16,19 @@ class RefreshToken(BaseModel):
     refreshToken: str
 
 
+class Me(BaseModel):
+    id: int
+    login: str
+    password: str
+    firstname: Optional[str]
+    middlename: Optional[str]
+    lastname: Optional[str]
+    phone: Optional[str]
+    status: Optional[str]
+    role: Optional[str]
+    hash: Optional[str]
+
+
 class AuthResponse(BaseModel):
     status: str
-    data: Union[AuthTokens, User, Installer, ErrorDetails]
+    data: Union[AuthTokens, Me, ErrorDetails]
