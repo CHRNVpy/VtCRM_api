@@ -13,7 +13,7 @@ class NewInstaller(BaseModel):
     lastname: str
     phone: str
     status: Optional[Literal['active', 'inactive']] = 'active'
-    role: str = 'entity'
+    role: str = 'installer'
     ver: int
     hash: str
 
@@ -28,6 +28,7 @@ class Installer(BaseModel):
     phone: str
     status: str
     role: str
+    hash: str
 
 
 class UpdateInstaller(BaseModel):
@@ -38,6 +39,7 @@ class UpdateInstaller(BaseModel):
     phone: Optional[str] = ''
     status: Optional[str] = ''
     password: Optional[str] = ''
+    hash: str
 
 
 class CurrentInstaller(BaseModel):

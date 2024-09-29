@@ -111,13 +111,14 @@ async def get_installer_data_by_id(installer_id: int):
                           phone AS phone,
                           status As status,
                           role AS role,
-                          id AS user_id
+                          id AS user_id,
+                          hash AS hash
                         FROM users
                         WHERE id = %s''', (installer_id,))
                 result = await cur.fetchone()
                 return Installer(login=result[0], password=result[1], firstname=result[2], middlename=result[3],
                                  lastname=result[4], phone=result[5], status=result[6], role=result[7],
-                                 id=result[8]) if result else None
+                                 id=result[8], hash=result[9]) if result else None
 
 
 async def hash_exists(hash: str):
