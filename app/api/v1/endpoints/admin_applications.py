@@ -18,8 +18,9 @@ service = AppService()
             responses={401: {"description": "Incorrect username or password"}})
 async def get_applications(page: int = Query(1, ge=1), per_page: int = Query(10, le=100),
                            pool_id: int = Query(None, description="Filters by pool"),
+                           filter: str = Query(None, description=""),
                            current_user: str = Depends(get_current_user)):
-    applications = await service.list_apps(page, per_page, pool_id)
+    applications = await service.list_apps(page, per_page, pool_id, filter)
     return ApplicationsResponse(status='ok', data=applications)
 
 

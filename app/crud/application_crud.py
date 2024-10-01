@@ -239,7 +239,7 @@ async def get_application(app_id: int, steps: bool = False):
 # print(asyncio.run(get_application(2, steps=True)))
 
 
-async def get_applications(pool_id: Optional[int] = None) -> list[ApplicationData]:
+async def get_applications(pool_id: Optional[int] = None, filter = None) -> list[ApplicationData]:
     query = '''SELECT 
                     a.*,
                     GROUP_CONCAT(
@@ -259,14 +259,30 @@ async def get_applications(pool_id: Optional[int] = None) -> list[ApplicationDat
                 FROM 
                     applications a
                 LEFT JOIN 
-                    images i ON a.id = i.application_id'''
+                    images i ON a.id = i.application_id
+                LEFT JOIN 
+                    equipment e ON a.id = e.application_id'''
+    filters = []
     params = []
+
+    # Add filters based on provided parameters
     if pool_id:
-        query += (" WHERE a.app_pool_id = %s "
-                  "GROUP BY a.id")
+        filters.append("a.app_pool_id = %s")
         params.append(pool_id)
-    else:
-        query += " GROUP BY a.id"
+
+    if filter:
+        if filter.isdigit():  # Check if filter is a numeric installer_id
+            filters.append('a.installer_id = %s OR a.client LIKE %s')
+            params.extend([filter, filter])
+        else:  # Check if filter is alphabetic (like equipment name or client)
+            filters.append('e.name LIKE %s OR a.comment LIKE %s')
+            params.extend([f'%{filter}%', f'%{filter}%'])
+
+    # Combine filters into the query
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+
+    query += " GROUP BY a.id"
 
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:

@@ -48,8 +48,8 @@ class AppService:
         return Application(appVer=await get_apps_version(),
                            imageVer=await get_images_version(), entity=app)
 
-    async def list_apps(self, page: int, limit: int, pool_id: int):
-        applications = await get_applications(pool_id)
+    async def list_apps(self, page: int, limit: int, pool_id: int, filter):
+        applications = await get_applications(pool_id, filter)
 
         total_items = len(applications)
         paginated_items = self.paginate(applications, page, limit)

@@ -1,4 +1,4 @@
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Literal
 
 from pydantic import BaseModel
 
@@ -10,7 +10,7 @@ class NewEquipment(BaseModel):
     name: str
     serialNumber: str
     comment: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[Literal['client', 'installer', 'base']] = 'base'
     applicationId: Optional[int] = None
     installerId: Optional[int] = None
 
@@ -30,7 +30,7 @@ class Equipment(BaseModel):
     name: str
     serialNumber: str
     comment: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[Literal['client', 'installer', 'base']] = 'base'
     applicationId: Optional[int] = None
     installerId: Optional[int] = None
 

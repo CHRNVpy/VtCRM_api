@@ -15,8 +15,11 @@ service = EquipmentService()
             response_model=EquipmentResponse,
             responses={401: {"description": "Incorrect username or password"}})
 async def get_all_equipment(page: int = Query(1, ge=1), per_page: int = Query(10, le=100),
+                            name_filter: str = Query(None, description="name, serial or comment"),
+                            status_filter: str = Query(None, description="client, installer or base"),
+                            installer_filter: int = Query(None, description="installer ID"),
                             current_user: str = Depends(get_current_user)):
-    equipment = await service.list_equipment(page, per_page)
+    equipment = await service.list_equipment(page, per_page, name_filter, status_filter, installer_filter)
     return EquipmentResponse(status='ok', data=equipment)
 
 

@@ -15,17 +15,34 @@ async def get_equipment_version():
                 return result[0] if result[0] else 0
 
 
-async def get_all_equipment():
+async def get_all_equipment(name_filter: str = None,
+                            status_filter: str = None,
+                            installer_filter: int = None):
+    query = '''SELECT * FROM equipment WHERE 1=1'''
+    filters = []
+
+    if name_filter:
+        query += ' AND (name LIKE %s OR serial LIKE %s OR comment LIKE %s)'
+        filters.extend([f'%{name_filter}%', f'%{name_filter}%', f'%{name_filter}%'])
+
+    if status_filter:
+        query += ' AND status = %s'
+        filters.append(status_filter)
+
+    if installer_filter:
+        query += ' AND installer_id = %s'
+        filters.append(installer_filter)
+
+    query += ' ORDER BY name'
+
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(
-                    '''SELECT * 
-                    FROM equipment
-                    ORDER BY name''')
+                await cur.execute(query, filters)
                 results = await cur.fetchall()
-                return [Equipment(id=r[0], name=r[1], serialNumber=r[2], comment=r[3], status=r[4],
-                                  applicationId=r[5], installerId=r[6]) for r in results if results]
+                return [Equipment(id=r[0], name=r[1], serialNumber=r[2], comment=r[3],
+                                  status=r[4], applicationId=r[5], installerId=r[6])
+                        for r in results if results]
 
 
 async def get_equipment_by_id(equipment_id: int):

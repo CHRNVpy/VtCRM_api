@@ -47,9 +47,9 @@ class EquipmentService:
         equipment = await get_equipment_by_id(equipment_id)
         return SingleEquipment(ver=current_version, entity=equipment)
 
-    async def list_equipment(self, page: int, limit: int):
+    async def list_equipment(self, page: int, limit: int, name_filter, status_filter, installer_filter):
         version = await get_equipment_version()
-        equipment = await get_all_equipment()
+        equipment = await get_all_equipment(name_filter, status_filter, installer_filter)
         if not equipment:
             raise VtCRM_HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                       error_details=ErrorDetails(code="No equipment added yet"))
