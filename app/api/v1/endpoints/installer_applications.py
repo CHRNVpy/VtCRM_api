@@ -21,19 +21,20 @@ async def get_installer_applications(page: int = Query(1, ge=1), per_page: int =
     return ApplicationsResponse(status='ok', data=applications)
 
 
-@router.get("/installer-application",
+@router.get("/installer-application/{application_id}",
             response_model=ApplicationResponse,
             responses={401: {"description": "Incorrect username or password"}})
-async def get_installer_application(id: int = Query(0, description="Application id"),
+async def get_installer_application(application_id: int,
                                     current_user: str = Depends(get_current_user)):
-    response = await service.get_app(id)
+    response = await service.get_app(application_id)
     return ApplicationResponse(status='ok', data=response)
 
 
-@router.patch("/installer-application",
+@router.patch("/installer-application/{application_id}",
               response_model=ApplicationResponse,
               responses={401: {"description": "Incorrect username or password"}})
 async def update_installer_application(updated_app: UpdatedInstallerApplicationData,
+                                       application_id: int,
                                        current_user: str = Depends(get_current_user)):
-    response = await service.update_installer_app(updated_app)
+    response = await service.update_installer_app(updated_app, application_id)
     return ApplicationResponse(status='ok', data=response)

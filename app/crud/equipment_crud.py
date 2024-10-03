@@ -14,6 +14,14 @@ async def get_equipment_version():
                 result = await cur.fetchone()
                 return result[0] if result[0] else 0
 
+async def equipment_hash_exists(hash: str):
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute('SELECT hash FROM equipment WHERE hash = %s', (hash,))
+                result = await cur.fetchone()
+                return result is not None
+
 
 async def get_all_equipment(name_filter: str = None,
                             status_filter: str = None,
@@ -41,7 +49,7 @@ async def get_all_equipment(name_filter: str = None,
                 await cur.execute(query, filters)
                 results = await cur.fetchall()
                 return [Equipment(id=r[0], name=r[1], serialNumber=r[2], comment=r[3],
-                                  status=r[4], applicationId=r[5], installerId=r[6])
+                                  applicationId=r[5], installerId=r[6], hash=r[8])
                         for r in results if results]
 
 
@@ -51,8 +59,8 @@ async def get_equipment_by_id(equipment_id: int):
             async with conn.cursor() as cur:
                 await cur.execute('SELECT * FROM equipment WHERE id = %s', (equipment_id,))
                 r = await cur.fetchone()
-                return Equipment(id=r[0], name=r[1], serialNumber=r[2], comment=r[3], status=r[4],
-                                 applicationId=r[5], installerId=r[6]) if r else None
+                return Equipment(id=r[0], name=r[1], serialNumber=r[2], comment=r[3],
+                                 applicationId=r[5], installerId=r[6], hash=r[8]) if r else None
 
 
 async def create_equipment(equipment: NewEquipment):
@@ -73,10 +81,6 @@ async def create_equipment(equipment: NewEquipment):
         columns.append("comment")
         values.append("%s")
         params.append(equipment.comment)
-    if equipment.status:
-        columns.append("status")
-        values.append("%s")
-        params.append(equipment.status)
     if equipment.applicationId:
         columns.append("application_id")
         values.append("%s")
@@ -111,9 +115,6 @@ async def update_equipment(equipment: UpdatedEquipment, equipment_id: int):
     if equipment.comment:
         items.append(f"comment = %s")
         params.append(equipment.comment)
-    if equipment.status:
-        items.append(f"status = %s")
-        params.append(equipment.status)
     if equipment.applicationId:
         items.append(f"application_id = %s")
         params.append(equipment.applicationId)

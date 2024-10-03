@@ -10,9 +10,9 @@ class NewEquipment(BaseModel):
     name: str
     serialNumber: str
     comment: Optional[str] = None
-    status: Optional[Literal['client', 'installer', 'base']] = 'base'
     applicationId: Optional[int] = None
     installerId: Optional[int] = None
+    hash: str
 
 
 class UpdatedEquipment(BaseModel):
@@ -20,9 +20,9 @@ class UpdatedEquipment(BaseModel):
     name: Optional[str] = None
     serialNumber: Optional[str] = None
     comment: Optional[str] = None
-    status: Optional[str] = None
     applicationId: Optional[int] = None
     installerId: Optional[int] = None
+    hash: str
 
 
 class Equipment(BaseModel):
@@ -30,9 +30,9 @@ class Equipment(BaseModel):
     name: str
     serialNumber: str
     comment: Optional[str] = None
-    status: Optional[Literal['client', 'installer', 'base']] = 'base'
     applicationId: Optional[int] = None
     installerId: Optional[int] = None
+    hash: str
 
 
 class SingleEquipment(BaseModel):

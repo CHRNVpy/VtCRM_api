@@ -32,7 +32,8 @@ class Installer(BaseModel):
 
 
 class UpdateInstaller(BaseModel):
-    id: int
+
+    ver: int
     firstname: Optional[str] = ''
     middlename: Optional[str] = ''
     lastname: Optional[str] = ''

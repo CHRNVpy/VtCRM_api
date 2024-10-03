@@ -87,3 +87,14 @@ async def init_db():
                     "FOREIGN KEY(installer_id) REFERENCES users(id), "
                     "FOREIGN KEY(step_id) REFERENCES coordinates(id))"
                 )
+
+                await cur.execute(
+                    "CREATE TABLE IF NOT EXISTS versions ("
+                    "id INT AUTO_INCREMENT PRIMARY KEY, "
+                    "users INT, "
+                    "applications INT, "
+                    "images INT, "
+                    "pools INT, "
+                    "equipment INT)"
+                )
+

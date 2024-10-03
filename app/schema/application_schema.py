@@ -30,7 +30,7 @@ class NewApplication(BaseModel):
 
 
 class UpdatedApplicationData(BaseModel):
-    id: int
+
     type: Optional[Literal['connection', 'repair', 'line setup']] = None
     client: Optional[str] = None
     installerId: Optional[int] = None

@@ -28,18 +28,19 @@ async def create_installer(installer: NewInstaller, current_user: str = Depends(
     return InstallerResponse(status='ok', data=response)
 
 
-@router.get("/installer",
+@router.get("/installer/{installer_id}",
             response_model=InstallerResponse,
             responses={401: {"description": "Incorrect username or password"}})
-async def get_installer(id: int = Query(0, description="Installer id"), current_user: str = Depends(get_current_user)):
-    response = await service.get_installer(current_user, id)
+async def get_installer(installer_id: int, current_user: str = Depends(get_current_user)):
+    response = await service.get_installer(current_user, installer_id)
     return InstallerResponse(status='ok', data=response)
 
 
-@router.patch("/installer",
+@router.patch("/installer/{installer_id}",
               # response_model=InstallerResponse,
               responses={401: {"description": "Incorrect username or password"}})
 async def update_installer(updated_installer: UpdateInstaller,
+                           installer_id: int,
                            current_user: str = Depends(get_current_user)):
-    response = await service.update_installer(updated_installer)
+    response = await service.update_installer(updated_installer, installer_id)
     return InstallerResponse(status='ok', data=response)

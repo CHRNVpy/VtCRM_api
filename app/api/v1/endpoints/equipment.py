@@ -32,20 +32,20 @@ async def create_equipment(new_item: NewEquipment,
     return EquipmentResponse(status='ok', data=response)
 
 
-@router.get("/equipment",
+@router.get("/equipment/{equipment_id}",
             response_model=EquipmentResponse,
             responses={401: {"description": "Incorrect username or password"}})
-async def get_equipment(id: int = Query(None, description="Equipment id"),
+async def get_equipment(equipment_id: int,
                         current_user: str = Depends(get_current_user)):
-    response = await service.get_equipment(id)
+    response = await service.get_equipment(equipment_id)
     return EquipmentResponse(status='ok', data=response)
 
 
-@router.patch("/equipment",
+@router.patch("/equipment/{equipment_id}",
               response_model=EquipmentResponse,
               responses={401: {"description": "Incorrect username or password"}})
 async def update_equipment(equipment: UpdatedEquipment,
-                           id: int = Query(0, description="Equipment id"),
+                           equipment_id: int,
                            current_user: str = Depends(get_current_user)):
-    response = await service.update_equipment(equipment, id)
+    response = await service.update_equipment(equipment, equipment_id)
     return EquipmentResponse(status='ok', data=response)

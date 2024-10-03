@@ -100,25 +100,25 @@ class AppService:
                            imageVer=await get_images_version(),
                            entity=updated_application)
 
-    async def update_installer_app(self, updated_app: UpdatedInstallerApplicationData):
+    async def update_installer_app(self, updated_app: UpdatedInstallerApplicationData, application_id: int):
         if updated_app.ver != await get_apps_version():
             raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                       error_details=ErrorDetails(code="Version mismatch"))
 
-        application = await get_application(updated_app.id)
+        application = await get_application(application_id)
         if not application:
             raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                       error_details=ErrorDetails(
                                           code=f"Application doesn't exist with ID {updated_app.id}"))
 
-        await update_app(updated_app, updated_app.id)
+        await update_app(updated_app, application_id)
         if updated_app.status == 'finished':
-            await self.finish_pool(updated_app.id)
+            await self.finish_pool(application_id)
 
         if updated_app.steps:
-            updated_application = await get_application(updated_app.id, steps=True)
+            updated_application = await get_application(application_id, steps=True)
             for step in updated_app.steps:
-                step_id = await add_step(step, updated_app.id)
+                step_id = await add_step(step, application_id)
 
                 image_tasks = [add_step_image(step_id, image_id) for image_id in step.images]
                 equipment_tasks = [add_step_equipment(step_id, equipment_id) for equipment_id in step.equipments]

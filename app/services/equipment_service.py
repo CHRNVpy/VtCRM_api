@@ -1,5 +1,5 @@
 from app.crud.equipment_crud import get_equipment_version, get_all_equipment, create_equipment, get_equipment_by_id, \
-    update_equipment
+    update_equipment, equipment_hash_exists
 from app.schema.equipment_schema import EquipmentList, NewEquipment, SingleEquipment, UpdatedEquipment
 from app.schema.error_schema import ErrorDetails
 from app.util.exception import VtCRM_HTTPException
@@ -20,6 +20,9 @@ class EquipmentService:
         if new_item.ver != await get_equipment_version():
             raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(code="Version mismatch"))
+        if await equipment_hash_exists(new_item.hash):
+            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                      error_details=ErrorDetails(code="Equipment hash exists"))
         new_equipment_id = await create_equipment(new_item)
         equipment = await get_equipment_by_id(new_equipment_id)
         return SingleEquipment(ver=await get_equipment_version(), entity=equipment)

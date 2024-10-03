@@ -70,15 +70,6 @@ async def is_refresh_token_valid(refresh_token: str):
                 return result is not None
 
 
-async def get_users_version():
-    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
-        async with pool.acquire() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute('SELECT MAX(id) FROM users')
-                result = await cur.fetchone()
-                return result[0] if result else 0
-
-
 async def get_installer_data_by_hash(hash: str):
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:

@@ -39,3 +39,33 @@ async def add_installer(installer: NewInstaller) -> None:
                 await conn.commit()
                 # user_id = cur.lastrowid
                 # return user_id
+
+async def get_users_version():
+    query = 'SELECT users FROM versions'
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(query)
+                r = await cur.fetchone()
+                return r[0]
+
+
+async def update_users_version() -> int:
+    query_select = 'SELECT users FROM versions'
+    query_update = 'UPDATE versions SET users = %s'
+
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                # Fetch the current users value
+                await cur.execute(query_select)
+                result = await cur.fetchone()
+
+                current_users = result[0]
+
+                new_users_value = current_users + 1
+
+                await cur.execute(query_update, (new_users_value,))
+                await conn.commit()
+
+                return new_users_value
