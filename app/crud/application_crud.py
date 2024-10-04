@@ -165,13 +165,16 @@ async def get_application(app_id: int, steps: bool = False):
 
                 if steps:
                     steps_str = results.get('steps')
+                    print(steps_str)
                     if steps_str:
                         steps_obj = json.loads(steps_str)
                         steps = []
                         for step in steps_obj:
+                            print(step)
                             type = step.get('type')
                             images = step.get('images')
                             coords = step.get('coords')
+                            print(coords)
                             equipment = step.get('equipments')
 
                             crm_images = [CrmImage(**img) for img in images]
@@ -453,15 +456,9 @@ async def update_app(updated_app: Union[UpdatedApplicationData, UpdatedInstaller
     updates = []
     params = []
 
-    if isinstance(updated_app, UpdatedApplicationData) and updated_app.type:
-        updates.append("type = %s")
-        params.append(updated_app.type)
     if isinstance(updated_app, UpdatedApplicationData) and updated_app.client:
         updates.append("client = %s")
         params.append(updated_app.client)
-    if isinstance(updated_app, UpdatedApplicationData) and updated_app.installerId:
-        updates.append("installer_id = %s")
-        params.append(updated_app.installerId)
     if isinstance(updated_app, UpdatedApplicationData) and updated_app.comment:
         updates.append("comment = %s")
         params.append(updated_app.comment)
@@ -471,9 +468,6 @@ async def update_app(updated_app: Union[UpdatedApplicationData, UpdatedInstaller
     if isinstance(updated_app, UpdatedApplicationData) and updated_app.installDate:
         updates.append("install_date = %s")
         params.append(updated_app.installDate)
-    if isinstance(updated_app, UpdatedApplicationData) and updated_app.poolId:
-        updates.append("app_pool_id = %s")
-        params.append(updated_app.appPoolId)
 
     if updates:
 

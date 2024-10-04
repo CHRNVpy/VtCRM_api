@@ -59,11 +59,11 @@ async def update_pool(current_user: str = Depends(get_current_user)):
     return AppPoolResponse(status='ok', data=response)
 
 
-@router.patch("/admin-pool/{pool_id}",
-              response_model=AppPoolResponse,
-              responses={401: {"description": "Incorrect username or password"}})
-async def update_pool(updated_pool: UpdatedPool,
-                      pool_id: int,
-                      current_user: str = Depends(get_current_user)):
-    response = await service.update_pool(updated_pool, pool_id)
-    return AppPoolResponse(status='ok', data=response)
+# @router.patch("/admin-pool/{pool_id}",
+#               response_model=AppPoolResponse,
+#               responses={401: {"description": "Incorrect username or password"}})
+# async def update_pool(updated_pool: UpdatedPool,
+#                       pool_id: int,
+#                       current_user: str = Depends(get_current_user)):
+#     response = await service.update_pool(updated_pool, pool_id)
+#     return AppPoolResponse(status='ok', data=response)

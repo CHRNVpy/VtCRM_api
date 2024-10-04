@@ -32,11 +32,17 @@ class InstallerService:
             try:
                 await add_installer(new_installer)
                 await update_users_version()
+                installer = await get_installer_data_by_hash(new_installer.hash)
+                return NewInstallerResponse(ver=await get_users_version(), entity=installer)
             except Exception as e:
                 raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                           error_details=ErrorDetails(code=str(e)))
-        installer = await get_installer_data_by_hash(new_installer.hash)
-        return NewInstallerResponse(ver=await get_users_version(), entity=installer)
+        else:
+            installer = await get_installer_data_by_hash(new_installer.hash)
+            await update_installer(new_installer, installer.id)
+            await update_users_version()
+            updated_installer = await get_installer_data_by_hash(new_installer.hash)
+            return NewInstallerResponse(ver=await get_users_version(), entity=updated_installer)
 
     async def get_all_installers(self, current_user: str) -> Installers:
         if not await is_admin(current_user):

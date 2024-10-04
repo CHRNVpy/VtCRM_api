@@ -1,10 +1,11 @@
 import asyncio
+from typing import List, Union
 
 import aiomysql
 
 from app.core.config import configs
 from app.schema.auth_schema import Me
-from app.schema.installer_schema import Installer, UpdateInstaller
+from app.schema.installer_schema import Installer, UpdateInstaller, NewInstaller
 from app.schema.user_schema import User
 
 
@@ -158,7 +159,7 @@ async def get_all_installers_data():
                         for result in results if results]
 
 
-async def update_installer(updated_installer: UpdateInstaller, installer_id: int):
+async def update_installer(updated_installer: Union[NewInstaller, UpdateInstaller], installer_id: int):
     # Base query
     query = "UPDATE users SET "
 
@@ -189,7 +190,7 @@ async def update_installer(updated_installer: UpdateInstaller, installer_id: int
 
     # Add the WHERE clause to specify the entity to update
     query += f" WHERE id = {installer_id};"
-    print(query)
+
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:

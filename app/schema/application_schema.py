@@ -24,28 +24,23 @@ class NewApplication(BaseModel):
     type: Optional[Literal['connection', 'repair', 'line setup']]
     client: str
     comment: Optional[str] = None
-    status: Optional[Literal['active', 'pending', 'finished', 'cancelled']] = 'pending'
+    status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = 'pending'
     installDate: datetime.datetime
     poolId: Optional[int] = None
 
 
 class UpdatedApplicationData(BaseModel):
 
-    type: Optional[Literal['connection', 'repair', 'line setup']] = None
     client: Optional[str] = None
-    installerId: Optional[int] = None
     comment: Optional[str] = None
-    status: Optional[Literal['active', 'pending', 'finished', 'cancelled']] = None
+    status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installDate: Optional[datetime.datetime] = None
-    poolId: Optional[int] = None
-
 
 class LineSetupStep(BaseModel):
     type: Literal["start", "step", "stop"]
     images: List[int]
     coords: Coordinates
     equipments: List[int]
-    created: datetime.datetime
 
 class LineSetupStepFull(BaseModel):
     type: Literal["start", "step", "stop"]
@@ -55,9 +50,9 @@ class LineSetupStepFull(BaseModel):
 
 
 class UpdatedInstallerApplicationData(BaseModel):
-    id: int
+
     ver: int
-    status: Optional[Literal['finished', 'cancelled']] = None
+    status: Optional[Literal['finished']] = None
     installedDate: Optional[datetime.datetime] = None
     steps: Optional[List[LineSetupStep]] = None
 
@@ -65,7 +60,7 @@ class UpdatedInstallerApplicationData(BaseModel):
 class ApplicationData(BaseModel):
     id: int
     type: Optional[Literal['connection', 'repair', 'line setup']] = None
-    client: ClientData
+    client: Optional[ClientData] = None
     installerId: Optional[int] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled']] = None
