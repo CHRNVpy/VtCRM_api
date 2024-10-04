@@ -128,7 +128,6 @@ class AppPoolData(BaseModel):
 
 class UpdatedPool(BaseModel):
     appVer: int
-    id: int
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled']]
 
 

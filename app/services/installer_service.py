@@ -24,7 +24,7 @@ class InstallerService:
             raise VtCRM_HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                       error_details=ErrorDetails(code="You're not an admin"))
         if new_installer.ver != await get_users_version():
-            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+            raise VtCRM_HTTPException(status_code=status.HTTP_200_OK,
                                       error_details=ErrorDetails(code="Version mismatch"))
         if not await hash_exists(new_installer.hash):
             if not new_installer.login:
@@ -57,7 +57,7 @@ class InstallerService:
         return CurrentInstaller(ver=await get_users_version(), entity=installer)
 
     async def update_installer(self, updated_installer: UpdateInstaller, installer_id: int):
-        if updated_installer.ver != await get_version():
+        if updated_installer.ver != await get_users_version():
             raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                       error_details=ErrorDetails(code="Version mismatch"))
         installer = await get_installer_data_by_id(installer_id)

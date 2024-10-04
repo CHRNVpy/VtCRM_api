@@ -47,7 +47,7 @@ async def get_users_version():
             async with conn.cursor() as cur:
                 await cur.execute(query)
                 r = await cur.fetchone()
-                return r[0]
+                return r[0] if r else 0
 
 
 async def update_users_version() -> int:

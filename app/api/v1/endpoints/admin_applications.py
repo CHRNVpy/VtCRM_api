@@ -32,21 +32,22 @@ async def create_application(new_app: NewApplication, current_user: str = Depend
     return ApplicationResponse(status='ok', data=response)
 
 
-@router.get("/admin-application",
+@router.get("/admin-application/{application_id}",
             response_model=ApplicationResponse,
             responses={401: {"description": "Incorrect username or password"}})
-async def get_application(id: int = Query(None, description="Application id"),
+async def get_application(application_id: int,
                           current_user: str = Depends(get_current_user)):
-    response = await service.get_app(id)
+    response = await service.get_app(application_id)
     return ApplicationResponse(status='ok', data=response)
 
 
-@router.patch("/admin-application",
+@router.patch("/admin-application/{application_id}",
               response_model=ApplicationResponse,
               responses={401: {"description": "Incorrect username or password"}})
 async def update_application(updated_app: UpdatedApplicationData,
+                             application_id: int,
                              current_user: str = Depends(get_current_user)):
-    response = await service.update_app(updated_app)
+    response = await service.update_app(updated_app, application_id)
     return ApplicationResponse(status='ok', data=response)
 
 
@@ -58,10 +59,11 @@ async def update_pool(current_user: str = Depends(get_current_user)):
     return AppPoolResponse(status='ok', data=response)
 
 
-@router.patch("/admin-pool",
+@router.patch("/admin-pool/{pool_id}",
               response_model=AppPoolResponse,
               responses={401: {"description": "Incorrect username or password"}})
 async def update_pool(updated_pool: UpdatedPool,
+                      pool_id: int,
                       current_user: str = Depends(get_current_user)):
-    response = await service.update_pool(updated_pool)
+    response = await service.update_pool(updated_pool, pool_id)
     return AppPoolResponse(status='ok', data=response)

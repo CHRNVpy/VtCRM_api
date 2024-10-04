@@ -33,15 +33,17 @@ async def get_all_equipment(name_filter: str = None,
         query += ' AND (name LIKE %s OR serial LIKE %s OR comment LIKE %s)'
         filters.extend([f'%{name_filter}%', f'%{name_filter}%', f'%{name_filter}%'])
 
-    if status_filter:
-        query += ' AND status = %s'
-        filters.append(status_filter)
+    if status_filter and status_filter == 'base':
+        query += ' AND installer_id IS NULL'
 
-    if installer_filter:
+    if status_filter and status_filter == 'installer':
+        query += ' AND installer_id IS NOT NULL'
+
+    if installer_filter and installer_filter != 0:
         query += ' AND installer_id = %s'
         filters.append(installer_filter)
 
-    query += ' ORDER BY name'
+    query += ' ORDER BY id'
 
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
@@ -89,6 +91,10 @@ async def create_equipment(equipment: NewEquipment):
         columns.append("installer_id")
         values.append("%s")
         params.append(equipment.installerId)
+    if equipment.hash:
+        columns.append("hash")
+        values.append("%s")
+        params.append(equipment.hash)
 
     query += ", ".join(columns) + ") VALUES (" + ", ".join(values) + ")"
 

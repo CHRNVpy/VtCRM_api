@@ -271,12 +271,10 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
         params.append(pool_id)
 
     if filter:
-        if filter.isdigit():  # Check if filter is a numeric installer_id
-            filters.append('a.installer_id = %s OR a.client LIKE %s')
-            params.extend([filter, filter])
-        else:  # Check if filter is alphabetic (like equipment name or client)
-            filters.append('e.name LIKE %s OR a.comment LIKE %s')
-            params.extend([f'%{filter}%', f'%{filter}%'])
+        filters.append('a.installer_id = %s OR a.client LIKE %s OR e.serial LIKE %s OR e.name LIKE %s '
+                       'OR e.comment LIKE %s OR a.comment LIKE %s')
+        params.extend([filter, f'%{filter}%', f'%{filter}%', f'%{filter}%', f'%{filter}%', f'%{filter}%'])
+
 
     # Combine filters into the query
     if filters:

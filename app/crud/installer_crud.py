@@ -175,7 +175,7 @@ async def update_installer(updated_installer: UpdateInstaller, installer_id: int
         updates.append(f"lastname = %s")
         params.append(updated_installer.lastname)
     if updated_installer.phone:
-        updates.append(f"phone = %s'")
+        updates.append(f"phone = %s")
         params.append(updated_installer.phone)
     if updated_installer.status:
         updates.append(f"status = %s")
@@ -189,6 +189,7 @@ async def update_installer(updated_installer: UpdateInstaller, installer_id: int
 
     # Add the WHERE clause to specify the entity to update
     query += f" WHERE id = {installer_id};"
+    print(query)
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:

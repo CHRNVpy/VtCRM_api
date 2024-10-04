@@ -53,9 +53,6 @@ class EquipmentService:
     async def list_equipment(self, page: int, limit: int, name_filter, status_filter, installer_filter):
         version = await get_equipment_version()
         equipment = await get_all_equipment(name_filter, status_filter, installer_filter)
-        if not equipment:
-            raise VtCRM_HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                      error_details=ErrorDetails(code="No equipment added yet"))
         total_items = len(equipment)
         paginated_items = self.paginate(equipment, page, limit)
         total_pages = (total_items + limit - 1) // limit

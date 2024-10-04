@@ -86,16 +86,16 @@ class AppService:
                            imageVer=await get_images_version(),
                            entity=application)
 
-    async def update_app(self, updated_app: UpdatedApplicationData):
-        application = await get_application(updated_app.id)
+    async def update_app(self, updated_app: UpdatedApplicationData, application_id: int):
+        application = await get_application(application_id)
         if not application:
-            raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(
                                           code=f"Application doesn't exist with ID {updated_app.id}"))
-        await update_app(updated_app, updated_app.id)
-        updated_application = await get_application(updated_app.id)
+        await update_app(updated_app, application_id)
+        updated_application = await get_application(application_id)
         if updated_application.status == 'finished':
-            await self.finish_pool(updated_app.id)
+            await self.finish_pool(application_id)
         return Application(appVer=await get_apps_version(),
                            imageVer=await get_images_version(),
                            entity=updated_application)
@@ -139,14 +139,14 @@ class AppService:
         pools = await get_pools()
         return AppPools(appVer=await get_apps_version(), entities=pools)
 
-    async def update_pool(self, updated_pool: UpdatedPool):
+    async def update_pool(self, updated_pool: UpdatedPool, pool_id: int):
         if updated_pool.appVer != await get_apps_version():
-            raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(code="Version mismatch"))
-        if not await get_pool(updated_pool.id):
-            raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        if not await get_pool(pool_id):
+            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(
                                           code=f"Pool doesn't exist with ID {updated_pool.id}"))
         await update_pool_status(updated_pool)
-        updated_pool = await get_pool(updated_pool.id)
+        updated_pool = await get_pool(pool_id)
         return AppPool(appVer=await get_apps_version(), entity=updated_pool)
