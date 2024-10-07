@@ -1,18 +1,11 @@
 import asyncio
+from typing import Union
 
 import aiomysql
 
 from app.core.config import configs
 from app.schema.equipment_schema import Equipment, NewEquipment, UpdatedEquipment
 
-
-async def get_equipment_version():
-    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
-        async with pool.acquire() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute('SELECT MAX(id) FROM equipment')
-                result = await cur.fetchone()
-                return result[0] if result[0] else 0
 
 async def equipment_hash_exists(hash: str):
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
@@ -65,6 +58,16 @@ async def get_equipment_by_id(equipment_id: int):
                                  applicationId=r[5], installerId=r[6], hash=r[8]) if r else None
 
 
+async def get_equipment_by_hash(hash: str):
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute('SELECT * FROM equipment WHERE hash = %s', (hash,))
+                r = await cur.fetchone()
+                return Equipment(id=r[0], name=r[1], serialNumber=r[2], comment=r[3],
+                                 applicationId=r[5], installerId=r[6], hash=r[8]) if r else None
+
+
 async def create_equipment(equipment: NewEquipment):
     query = 'INSERT INTO equipment ('
     columns = []
@@ -107,7 +110,7 @@ async def create_equipment(equipment: NewEquipment):
                 return user_id
 
 
-async def update_equipment(equipment: UpdatedEquipment, equipment_id: int):
+async def update_equipment(equipment: Union[NewEquipment, UpdatedEquipment], equipment_id: int):
     query = 'UPDATE equipment SET '
     items = []
     params = []

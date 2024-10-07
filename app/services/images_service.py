@@ -8,8 +8,8 @@ import aiofiles
 from PIL import Image
 from fastapi import UploadFile, status
 
-from app.crud.admin_crud import get_user_id
-from app.crud.images_crud import get_images_version, create_image, get_image
+from app.crud.admin_crud import get_user_id, get_version, update_version
+from app.crud.images_crud import create_image, get_image
 from app.schema.error_schema import ErrorDetails
 from app.schema.images_schema import ImageMetadata, ImageVersion
 from app.util.exception import VtCRM_HTTPException
@@ -20,12 +20,12 @@ class ImagesService:
     def __init__(self):
         pass
 
-    async def create_image(self, file: UploadFile, image_metadata, current_user: str):
-        metadata_dict = json.loads(image_metadata)
-        image_metadata = ImageMetadata(**metadata_dict)
-        if image_metadata.ver != await get_images_version():
-            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                      error_details=ErrorDetails(code="Version mismatch"))
+    async def create_image(self, file: UploadFile, current_user: str):
+        # metadata_dict = json.loads(image_metadata)
+        # image_metadata = ImageMetadata(**metadata_dict)
+        # if image_metadata.ver != await get_version('images'):
+        #     raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+        #                               error_details=ErrorDetails(code="Version mismatch"))
         mime_type, _ = mimetypes.guess_type(file.filename)
         if not mime_type or not mime_type.startswith('image'):
             raise VtCRM_HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -62,5 +62,6 @@ class ImagesService:
         image_id = await create_image(unique_filename, mime_type, width, height,
                                       file.size, image_path, installer_id=user_id,
                                       application_id=image_metadata.applicationId)
+        await update_version('images')
 
-        return ImageVersion(ver=await get_images_version(), image=await get_image(image_id))
+        return ImageVersion(ver=await get_version('images'), image=await get_image(image_id))

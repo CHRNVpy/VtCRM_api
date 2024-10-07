@@ -14,7 +14,7 @@ service = ImagesService()
 @router.post("/image",
              response_model=ImageResponse,
              responses={401: {"description": "Invalid access token"}})
-async def get_image(file: UploadFile = File(...), metadata: str = Form(...),
+async def get_image(file: UploadFile = File(...),
                     current_user: str = Depends(get_current_user)):
-    response = await service.create_image(file, metadata, current_user)
+    response = await service.create_image(file, current_user)
     return ImageResponse(status='ok', data=response)

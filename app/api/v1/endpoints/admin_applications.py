@@ -13,7 +13,7 @@ router = APIRouter(
 service = AppService()
 
 
-@router.get("/admin-applications-collection",
+@router.get("/admin-application-collection",
             response_model=ApplicationsResponse,
             responses={401: {"description": "Incorrect username or password"}})
 async def get_applications(page: int = Query(1, ge=1), per_page: int = Query(10, le=100),

@@ -37,11 +37,13 @@ async def init_db():
                     "id INT AUTO_INCREMENT PRIMARY KEY, "
                     "type TEXT, "
                     "client TEXT, "
+                    "address TEXT, "
                     "installer_id INT, "
                     "comment TEXT, "
                     "status TEXT, "
                     "install_date DATETIME, "
                     "app_pool_id INT, "
+                    "hash TEXT, "
                     "FOREIGN KEY(installer_id) REFERENCES users(id), "
                     "FOREIGN KEY(app_pool_id) REFERENCES app_pool(id))"
                 )

@@ -29,4 +29,4 @@ async def get_client_data(account):
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(query, (account,))
                 client_data = await cur.fetchone()
-                return ClientData(**client_data)
+                return ClientData(**client_data) if client_data else ClientData()

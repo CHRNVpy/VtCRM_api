@@ -9,29 +9,33 @@ from app.schema.images_schema import CrmImage
 
 
 class ClientData(BaseModel):
-    fullName: str
+    fullName: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
     email: Optional[str] = None
 
 class Coordinates(BaseModel):
-    latitude: float
-    longitude: float
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 class NewApplication(BaseModel):
     ver: int
     type: Optional[Literal['connection', 'repair', 'line setup']]
-    client: str
+    client: Optional[str] = None
+    address: Optional[str] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = 'pending'
     installDate: datetime.datetime
     poolId: Optional[int] = None
+    hash: str
 
 
 class UpdatedApplicationData(BaseModel):
 
+    ver: int
     client: Optional[str] = None
+    address: Optional[str] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installDate: Optional[datetime.datetime] = None
@@ -43,10 +47,10 @@ class LineSetupStep(BaseModel):
     equipments: List[int]
 
 class LineSetupStepFull(BaseModel):
-    type: Literal["start", "step", "stop"]
-    images: List[CrmImage]
-    coords: Coordinates
-    equipments: List[Equipment]
+    type: Optional[Literal["start", "step", "stop"]] = None
+    images: Optional[List[CrmImage]] = None
+    coords: Optional[Coordinates] = None
+    equipments: Optional[List[Equipment]] = None
 
 
 class UpdatedInstallerApplicationData(BaseModel):
@@ -61,23 +65,28 @@ class ApplicationData(BaseModel):
     id: int
     type: Optional[Literal['connection', 'repair', 'line setup']] = None
     client: Optional[ClientData] = None
-    installerId: Optional[int] = None
+    address: Optional[str] = None
+    installer: Optional[dict] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled']] = None
     installDate: datetime.datetime
     poolId: Optional[int] = None
-    images: List[CrmImage]
+    hash: str
+    images: Optional[List[CrmImage]] = []
+    equipment: Optional[List[Equipment]] = []
 
 class LineSetupApplicationData(BaseModel):
     id: int
     type: Optional[Literal['connection', 'repair', 'line setup']] = None
-    client: ClientData
-    installerId: Optional[int] = None
+    client: Optional[ClientData] = None
+    address: Optional[str] = None
+    installer: Optional[dict] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled']] = None
     installDate: datetime.datetime
     poolId: Optional[int] = None
-    steps: List[LineSetupStepFull]
+    hash: str
+    steps: Optional[List[LineSetupStepFull]] = []
 
 
 class Application(BaseModel):
