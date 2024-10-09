@@ -27,6 +27,7 @@ class UpdatedEquipment(BaseModel):
 
 class Equipment(BaseModel):
     id: int
+    rowNum: int
     name: str
     serialNumber: str
     comment: Optional[str] = None

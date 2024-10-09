@@ -35,6 +35,9 @@ class EquipmentService:
     async def get_equipment(self, equipment_id: int):
         current_version = await get_version('equipment')
         equipment = await get_equipment_by_id(equipment_id)
+        if not equipment:
+            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                      error_details=ErrorDetails(code="Equipment ID doesn't exist"))
         return SingleEquipment(ver=current_version, entity=equipment)
 
     async def update_equipment(self, equipment: UpdatedEquipment, equipment_id: int):

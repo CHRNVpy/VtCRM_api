@@ -124,8 +124,11 @@ async def get_application(app_id: int, steps: bool = False):
                             '"}'
                         )
                     ) AS equipment
-                FROM 
-                    applications a
+                FROM (
+                        SELECT *,
+                               ROW_NUMBER() OVER (ORDER BY id) AS row_num
+                        FROM applications
+                    ) AS a
                 LEFT JOIN 
                     images i ON a.id = i.application_id
                 LEFT JOIN
@@ -180,8 +183,11 @@ async def get_application(app_id: int, steps: bool = False):
                             )
                         )
                     ), JSON_ARRAY()) AS steps
-                FROM
-                    applications a
+                FROM (
+                        SELECT *,
+                               ROW_NUMBER() OVER (ORDER BY id) AS row_num
+                        FROM applications
+                    ) AS a
                 LEFT JOIN
                     coordinates c ON c.application_id = a.id
                 LEFT JOIN
@@ -196,7 +202,7 @@ async def get_application(app_id: int, steps: bool = False):
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(query, app_id)
                 results = await cur.fetchone()
-                if not results:
+                if not results.get('id'):
                     return None
 
                 if steps:
@@ -220,6 +226,7 @@ async def get_application(app_id: int, steps: bool = False):
                                                                equipments=crm_equipment))
 
                         application_data = LineSetupApplicationData(id=results['id'],
+                                                                    rowNum=results['row_num'],
                                                                     type=results['type'],
                                                                     client=await get_client_data(results['client']),
                                                                     address=results['address'],
@@ -288,6 +295,7 @@ async def get_application(app_id: int, steps: bool = False):
                     # Create ApplicationImageData object
                     application_data = ApplicationData(
                         id=results['id'],
+                        rowNum=results['row_num'],
                         type=results['type'],
                         client=await get_client_data(results['client']),
                         address=results['address'],
@@ -305,8 +313,6 @@ async def get_application(app_id: int, steps: bool = False):
                     )
 
                     return application_data
-
-# print(asyncio.run(get_application(2, steps=True)))
 
 
 async def get_applications(pool_id: Optional[int] = None, filter = None) -> list[ApplicationData]:

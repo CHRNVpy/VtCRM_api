@@ -84,7 +84,7 @@ class AppService:
     async def get_app(self, app_id: int):
         application = await get_application(app_id, steps=True)
         if not application:
-            raise VtCRM_HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(code=f"Application doesn't exist with ID {app_id}"))
 
         return Application(appVer=await get_version('applications'),

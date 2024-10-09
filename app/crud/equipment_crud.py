@@ -52,10 +52,19 @@ async def get_equipment_by_id(equipment_id: int):
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
-                await cur.execute('SELECT * FROM equipment WHERE id = %s', (equipment_id,))
+                await cur.execute('''
+                    SELECT *
+                    FROM (
+                        SELECT *,
+                               ROW_NUMBER() OVER (ORDER BY id) AS row_num
+                        FROM equipment
+                    ) AS numbered_rows
+                    WHERE id = %s
+                ''', (equipment_id,))
+
                 r = await cur.fetchone()
                 return Equipment(id=r[0], name=r[1], serialNumber=r[2], comment=r[3],
-                                 applicationId=r[5], installerId=r[6], hash=r[8]) if r else None
+                                 applicationId=r[5], installerId=r[6], hash=r[8], rowNum=r[-1]) if r else None
 
 
 async def get_equipment_by_hash(hash: str):
@@ -65,7 +74,7 @@ async def get_equipment_by_hash(hash: str):
                 await cur.execute('SELECT * FROM equipment WHERE hash = %s', (hash,))
                 r = await cur.fetchone()
                 return Equipment(id=r[0], name=r[1], serialNumber=r[2], comment=r[3],
-                                 applicationId=r[5], installerId=r[6], hash=r[8]) if r else None
+                                 applicationId=r[5], installerId=r[6], hash=r[8]) if r else []
 
 
 async def create_equipment(equipment: NewEquipment):
