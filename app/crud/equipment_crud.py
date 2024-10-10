@@ -19,7 +19,12 @@ async def equipment_hash_exists(hash: str):
 async def get_all_equipment(name_filter: str = None,
                             status_filter: str = None,
                             installer_filter: int = None):
-    query = '''SELECT * FROM equipment WHERE 1=1'''
+    query = '''SELECT * FROM (
+                        SELECT *,
+                               ROW_NUMBER() OVER (ORDER BY id) AS row_num
+                        FROM equipment
+                    ) AS numbered_rows
+                     WHERE 1=1'''
     filters = []
 
     if name_filter:
@@ -43,7 +48,7 @@ async def get_all_equipment(name_filter: str = None,
             async with conn.cursor() as cur:
                 await cur.execute(query, filters)
                 results = await cur.fetchall()
-                return [Equipment(id=r[0], name=r[1], serialNumber=r[2], comment=r[3],
+                return [Equipment(id=r[0], rowNum=r[9], name=r[1], serialNumber=r[2], comment=r[3],
                                   applicationId=r[5], installerId=r[6], hash=r[8])
                         for r in results if results]
 
