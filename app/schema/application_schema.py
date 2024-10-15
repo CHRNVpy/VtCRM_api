@@ -74,7 +74,7 @@ class ApplicationData(BaseModel):
     poolId: Optional[int] = None
     hash: str
     images: Optional[List[CrmImage]] = []
-    equipment: Optional[List[Equipment]] = []
+    equipments: Optional[List[Equipment]] = []
 
 class LineSetupApplicationData(BaseModel):
     id: int

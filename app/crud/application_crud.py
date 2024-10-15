@@ -309,7 +309,7 @@ async def get_application(app_id: int, steps: bool = False):
                         poolId=results['app_pool_id'],
                         hash=results['hash'],
                         images=crm_images,
-                        equipment=equipment
+                        equipments=equipment
                     )
 
                     return application_data
@@ -343,8 +343,11 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
                             '"}'
                         )
                     ) AS equipment
-                FROM 
-                    applications a
+                FROM (
+                        SELECT *,
+                               ROW_NUMBER() OVER (ORDER BY id) AS row_num
+                        FROM applications
+                    ) AS a
                 LEFT JOIN 
                     images i ON a.id = i.application_id
                 LEFT JOIN 
@@ -421,7 +424,8 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
                                 name=equipment_json['name'],
                                 serialNumber=equipment_json['serial'],
                                 comment=equipment_json['comment'],
-                                hash=equipment_json['hash']
+                                hash=equipment_json['hash'],
+                                # rowNum=equipment_json['row_num']
                                 # installerId=img['installer_id'],
                                 # applicationId=img['application_id']
                             )
@@ -430,6 +434,7 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
                     # Create ApplicationImageData object
                     application_data = ApplicationData(
                         id=item['id'],
+                        rowNum=item['row_num'],
                         type=item['type'],
                         client=await get_client_data(item['client']),
                         installer={"id": item['installer_id'],
@@ -442,7 +447,7 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
                         poolId=item['app_pool_id'],
                         hash=item['hash'],
                         images=crm_images,
-                        equipment=equipment
+                        equipments=equipment
                     )
                     processed_data.append(application_data)
                 return processed_data
@@ -844,7 +849,7 @@ GROUP BY
                             installDate=app['installDate'],
                             poolId=app['poolId'],
                             images=crm_images,
-                            equipment=crm_equipment
+                            equipments=crm_equipment
                         )
                         applications_list.append(application_data)
                     processed_data.append(AppPoolData(id=pool_id, status=pool_status, installerId=pool_installer,
