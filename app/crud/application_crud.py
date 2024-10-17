@@ -754,6 +754,7 @@ async def get_pools():
             'comment', applications.comment,
             'status', applications.status,
             'installDate', applications.install_date,
+            'hash', applications.hash,
             'poolId', applications.app_pool_id,
             'images', COALESCE((
                 SELECT JSON_ARRAYAGG(
@@ -847,6 +848,7 @@ GROUP BY
                             comment=app['comment'],
                             status=app['status'],
                             installDate=app['installDate'],
+                            hash=app['hash'],
                             poolId=app['poolId'],
                             images=crm_images,
                             equipments=crm_equipment

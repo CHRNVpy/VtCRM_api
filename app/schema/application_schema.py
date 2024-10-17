@@ -63,7 +63,7 @@ class UpdatedInstallerApplicationData(BaseModel):
 
 class ApplicationData(BaseModel):
     id: int
-    rowNum: int
+    rowNum: Optional[int] = None
     type: Optional[Literal['connection', 'repair', 'line setup']] = None
     client: Optional[ClientData] = None
     address: Optional[str] = None

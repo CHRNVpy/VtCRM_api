@@ -40,6 +40,9 @@ class AppService:
             application_id = await get_application_id_by_hash(new_app.hash)
             await update_app(new_app, application_id)
             await update_version('applications')
+            app = await get_application(application_id)
+            return Application(appVer=await get_version('applications'),
+                               imageVer=await get_version('images'), entity=app)
         else:
             if not new_app.poolId:
                 installer = random.choice(await get_all_installers_data())
