@@ -54,7 +54,7 @@ async def update_application(updated_app: UpdatedApplicationData,
 @router.get("/admin-pool-collection",
             response_model=AppPoolResponse,
             responses={401: {"description": "Incorrect username or password"}})
-async def update_pool(current_user: str = Depends(get_current_user)):
+async def get_pools(current_user: str = Depends(get_current_user)):
     response = await service.get_pools()
     return AppPoolResponse(status='ok', data=response)
 
