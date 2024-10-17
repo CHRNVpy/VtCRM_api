@@ -9,6 +9,7 @@ from app.schema.application_schema import ClientData
 async def get_client_data(account):
 
     query = '''SELECT 
+                contract.login AS login,
                 contract.comment AS fullName,
                 contract_parameter_type_phone.value AS phone,
                 contract_parameter_type_2.address AS address,
