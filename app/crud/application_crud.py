@@ -437,6 +437,7 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
                         rowNum=item['row_num'],
                         type=item['type'],
                         client=await get_client_data(item['client']),
+                        address=item['address'],
                         installer={"id": item['installer_id'],
                                    "firstname": item['firstname'],
                                    "middlename": item['middlename'],
