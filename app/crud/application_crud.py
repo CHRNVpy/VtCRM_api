@@ -21,7 +21,7 @@ async def apps_hash_exists(hash: str):
                 return result is not None
 
 
-async def create_pool(installer_id: int) -> int:
+async def create_pool(installer_id: int | None) -> int:
     query = "INSERT INTO app_pool (status, installer_id) VALUES (%s, %s)"
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
@@ -40,6 +40,14 @@ async def get_pool_installer(pool_id: int):
                 await cur.execute(query, pool_id)
                 result = await cur.fetchone()
                 return result[0] if result else None
+
+async def update_pool_installer(pool_id: int, installer_id: int):
+    query = "UPDATE app_pool SET installer_id = %s WHERE id = %s"
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(query, (installer_id, pool_id))
+                await conn.commit()
 
 
 async def create_application(new_app: NewApplication, installer_id: int) -> int:
@@ -608,12 +616,34 @@ async def update_app(updated_app: Union[NewApplication, UpdatedApplicationData, 
                     await cur.execute(query, params)
                     await conn.commit()
 
+async def update_app_status_and_installer(app_id: int, status: str, installer_id: int):
+    query = 'UPDATE applications SET status = %s, installer_id = %s WHERE id = %s'
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(query, (status, installer_id, app_id))
+                await conn.commit()
+
+async def all_pool_apps_approved(app_id: int):
+    query = '''SELECT status
+                FROM applications
+                WHERE status != 'cancelled' AND app_pool_id = (SELECT app_pool_id 
+                FROM applications WHERE id = %s);'''
+
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(query, app_id)
+                result = await cur.fetchall()
+                all_approved = all(value == 'approved' for t in result for value in t)
+                return all_approved
+
 
 async def all_pool_apps_finished(app_id: int):
-    query = '''SELECT a.status
-                FROM vt_crm.applications a
-                WHERE app_pool_id = (SELECT app_pool_id 
-                FROM vt_crm.applications WHERE id = %s);'''
+    query = '''SELECT status
+                FROM applications
+                WHERE status != 'cancelled' AND app_pool_id = (SELECT app_pool_id 
+                FROM applications WHERE id = %s);'''
 
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
@@ -624,20 +654,20 @@ async def all_pool_apps_finished(app_id: int):
                 return all_finished
 
 
-async def set_pool_status_finished(app_id: int):
+async def set_pool_status(app_id: int, status: str):
     query = '''UPDATE app_pool ap
-                SET ap.status = 'finished' 
+                SET ap.status = %s 
                 WHERE ap.id = (SELECT a.app_pool_id 
                 FROM applications a WHERE a.id = %s);'''
 
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(query, app_id)
+                await cur.execute(query, (status, app_id))
                 await conn.commit()
 
 
-async def update_pool_status(updated_pool: UpdatedPool):
+async def update_pool_status(status, pool_id: int):
     query = '''UPDATE app_pool ap
                 SET ap.status = %s 
                 WHERE ap.id = %s;'''
@@ -645,7 +675,7 @@ async def update_pool_status(updated_pool: UpdatedPool):
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(query, (updated_pool.status, updated_pool.id))
+                await cur.execute(query, (status, pool_id))
                 await conn.commit()
 
 
@@ -654,7 +684,10 @@ async def get_pool(pool_id: int) -> AppPoolData:
         SELECT 
             app_pool.id AS pool_id, 
             app_pool.status AS pool_status,
-            app_pool.installer_id AS pool_installer, 
+            app_pool.installer_id AS pool_installer,
+            users.firstname,
+            users.middlename,
+            users.lastname, 
             JSON_ARRAYAGG(
                 JSON_OBJECT(
                     'id', applications.id, 
@@ -663,7 +696,9 @@ async def get_pool(pool_id: int) -> AppPoolData:
                     'installerId', applications.installer_id,
                     'comment', applications.comment,
                     'status', applications.status,
+                    'address', applications.address,
                     'installDate', applications.install_date,
+                    'hash', applications.hash,
                     'poolId', applications.app_pool_id,
                     'images', COALESCE((
                         SELECT JSON_ARRAYAGG(
@@ -687,7 +722,9 @@ async def get_pool(pool_id: int) -> AppPoolData:
         FROM 
             app_pool
         LEFT JOIN 
-            applications ON app_pool.id = applications.app_pool_id'''
+            applications ON app_pool.id = applications.app_pool_id
+        LEFT JOIN 
+            users ON app_pool.installer_id = users.id'''
 
     if pool_id:
         query += (" WHERE app_pool.id = %s "
@@ -700,7 +737,7 @@ async def get_pool(pool_id: int) -> AppPoolData:
             async with conn.cursor() as cur:
                 await cur.execute(query, (pool_id,))
                 app_pool = await cur.fetchone()
-                pool_id, pool_status, pool_installer, applications_json = app_pool
+                pool_id, pool_status, pool_installer, installer_name, installer_middlename, installer_lastname, applications_json = app_pool
                 applications = json.loads(applications_json)
                 applications_list = []
                 for app in applications:
@@ -731,13 +768,19 @@ async def get_pool(pool_id: int) -> AppPoolData:
                         installerId=app['installerId'],
                         comment=app['comment'],
                         status=app['status'],
+                        address=app['address'],
+                        installer={'id': pool_installer,
+                                   'name': installer_name,
+                                   'middlename': installer_middlename,
+                                   'lastname': installer_lastname},
                         installDate=app['installDate'],
+                        hash=app['hash'],
                         poolId=app['poolId'],
                         images=crm_images
                     )
                     applications_list.append(application_data)
                 return AppPoolData(id=pool_id, status=pool_status, installerId=pool_installer,
-                                   applications=applications_list) if app_pool else None
+                                   entities=applications_list) if app_pool else None
 
 
 async def get_pools():
@@ -745,7 +788,10 @@ async def get_pools():
     SELECT 
     app_pool.id AS pool_id, 
     app_pool.status AS pool_status,
-    app_pool.installer_id AS pool_installer, 
+    app_pool.installer_id AS pool_installer,
+    users.firstname,
+    users.middlename,
+    users.lastname,
     JSON_ARRAYAGG(
         JSON_OBJECT(
             'id', applications.id, 
@@ -754,6 +800,7 @@ async def get_pools():
             'installerId', applications.installer_id,
             'comment', applications.comment,
             'status', applications.status,
+            'address', applications.address,
             'installDate', applications.install_date,
             'hash', applications.hash,
             'poolId', applications.app_pool_id,
@@ -793,17 +840,19 @@ FROM
     app_pool
 LEFT JOIN 
     applications ON app_pool.id = applications.app_pool_id
+LEFT JOIN 
+    users ON app_pool.installer_id = users.id
 GROUP BY 
     app_pool.id, app_pool.status;'''
 
-    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+    async with (aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool):
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(query)
                 results = await cur.fetchall()
                 processed_data = []
                 for app_pool in results:
-                    pool_id, pool_status, pool_installer, applications_json = app_pool
+                    pool_id, pool_status, pool_installer, installer_name, installer_middlename, installer_lastname, applications_json = app_pool
                     applications = json.loads(applications_json)
                     applications_list = []
                     for app in applications:
@@ -848,6 +897,11 @@ GROUP BY
                             installerId=app['installerId'],
                             comment=app['comment'],
                             status=app['status'],
+                            address=app['address'],
+                            installer={'id': pool_installer,
+                                       'name': installer_name,
+                                       'middlename': installer_middlename,
+                                       'lastname': installer_lastname},
                             installDate=app['installDate'],
                             hash=app['hash'],
                             poolId=app['poolId'],

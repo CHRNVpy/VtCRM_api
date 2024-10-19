@@ -70,7 +70,7 @@ class ApplicationData(BaseModel):
     address: Optional[str] = None
     installer: Optional[dict] = None
     comment: Optional[str] = None
-    status: Optional[Literal['active', 'pending', 'finished', 'cancelled']] = None
+    status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installDate: datetime.datetime
     poolId: Optional[int] = None
     hash: str
@@ -85,7 +85,7 @@ class LineSetupApplicationData(BaseModel):
     address: Optional[str] = None
     installer: Optional[dict] = None
     comment: Optional[str] = None
-    status: Optional[Literal['active', 'pending', 'finished', 'cancelled']] = None
+    status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installDate: datetime.datetime
     poolId: Optional[int] = None
     hash: str
@@ -128,14 +128,14 @@ class PaginatedApplicationsResponse(BaseModel):
 
 class AppPoolData(BaseModel):
     id: int
-    status: Optional[Literal['active', 'pending', 'finished', 'cancelled']] = None
-    installerId: int
+    status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
+    installerId: Optional[int] = None
     entities: List[ApplicationData]
 
 
 class UpdatedPool(BaseModel):
-    appVer: int
-    status: Optional[Literal['active', 'pending', 'finished', 'cancelled']]
+    ver: int
+    status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']]
 
 
 class AppPool(BaseModel):

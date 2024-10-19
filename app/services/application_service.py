@@ -5,9 +5,10 @@ from fastapi import status
 
 from app.crud.admin_crud import is_admin, get_version, update_version
 from app.crud.application_crud import create_application, create_pool, get_application, \
-    get_applications, update_app, get_pool_installer, all_pool_apps_finished, set_pool_status_finished, \
+    get_applications, update_app, get_pool_installer, all_pool_apps_finished, set_pool_status, \
     update_pool_status, get_pool, get_pools, get_installer_applications, add_step, add_step_image, add_step_equipment, \
-    apps_hash_exists, get_application_id_by_hash, delete_steps
+    apps_hash_exists, get_application_id_by_hash, delete_steps, update_app_status_and_installer, all_pool_apps_approved, \
+    update_pool_installer
 from app.crud.installer_crud import get_all_installers_data
 from app.schema.application_schema import NewApplication, Application, ApplicationsList, UpdatedApplicationData, \
     UpdatedPool, AppPool, AppPools, UpdatedInstallerApplicationData
@@ -27,34 +28,45 @@ class AppService:
 
     async def finish_pool(self, app_id: int):
         if await all_pool_apps_finished(app_id):
-            await set_pool_status_finished(app_id)
+            await set_pool_status(app_id, 'finished')
+
+    async def approve_pool(self, app_id: int):
+        if await all_pool_apps_approved(app_id):
+            await set_pool_status(app_id, 'approved')
 
     async def create_app(self, new_app: NewApplication, current_user: str) -> Application:
-        if not await is_admin(current_user):
-            raise VtCRM_HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                      error_details=ErrorDetails(code="You're not an admin"))
-        if new_app.ver != await get_version('applications'):
-            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                      error_details=ErrorDetails(code="Version mismatch"))
-        if await apps_hash_exists(new_app.hash):
-            application_id = await get_application_id_by_hash(new_app.hash)
-            await update_app(new_app, application_id)
-            await update_version('applications')
-            app = await get_application(application_id)
-            return Application(appVer=await get_version('applications'),
-                               imageVer=await get_version('images'), entity=app)
-        else:
-            if not new_app.poolId:
-                installer = random.choice(await get_all_installers_data())
-                pool_id = await create_pool(installer.id)
-                new_app.poolId = pool_id
+        try:
+            if not await is_admin(current_user):
+                raise VtCRM_HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                          error_details=ErrorDetails(code="You're not an admin"))
+            if new_app.ver != await get_version('applications'):
+                raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                          error_details=ErrorDetails(code="Version mismatch"))
+            if await apps_hash_exists(new_app.hash):
+                application_id = await get_application_id_by_hash(new_app.hash)
+                await update_app(new_app, application_id)
+                await update_version('applications')
+                app = await get_application(application_id)
+                return Application(appVer=await get_version('applications'),
+                                   imageVer=await get_version('images'), entity=app)
+            else:
+                if not new_app.poolId:
+                    installer = None
+                    if new_app.status == 'active':
+                        installer = random.choice(await get_all_installers_data()).id
+                    pool_id = await create_pool(installer)
+                    await  update_pool_status('active', pool_id)
+                    new_app.poolId = pool_id
 
-            installer_id = await get_pool_installer(new_app.poolId)
-            created_app_id = await create_application(new_app, installer_id)
-            await update_version('applications')
-            app = await get_application(created_app_id)
-            return Application(appVer=await get_version('applications'),
-                               imageVer=await get_version('images'), entity=app)
+                installer_id = await get_pool_installer(new_app.poolId)
+                created_app_id = await create_application(new_app, installer_id)
+                await update_version('applications')
+                app = await get_application(created_app_id)
+                return Application(appVer=await get_version('applications'),
+                                   imageVer=await get_version('images'), entity=app)
+        except Exception as e:
+            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                      error_details=ErrorDetails(code=str(e)))
 
     async def list_apps(self, page: int, limit: int, pool_id: int, filter):
         applications = await get_applications(pool_id, filter)
@@ -108,6 +120,8 @@ class AppService:
         updated_application = await get_application(application_id)
         if updated_application.status == 'finished':
             await self.finish_pool(application_id)
+        if updated_application.status == 'approved':
+            await self.approve_pool(application_id)
         return Application(appVer=await get_version('applications'),
                            imageVer=await get_version('images'),
                            entity=updated_application)
@@ -127,6 +141,8 @@ class AppService:
         await update_version('applications')
         if updated_app.status == 'finished':
             await self.finish_pool(application_id)
+        if updated_app.status == 'approved':
+            await self.approve_pool(application_id)
 
         if updated_app.steps:
             await delete_steps(application_id)
@@ -145,7 +161,7 @@ class AppService:
                                    imageVer=await get_version('images'),
                                    entity=await get_application(application_id, steps=True))
 
-        updated_application = await get_application(updated_app.id)
+        updated_application = await get_application(application_id)
 
         return Application(appVer=await get_version('applications'),
                            imageVer=await get_version('images'),
@@ -156,14 +172,23 @@ class AppService:
         return AppPools(appVer=await get_version('applications'), entities=pools)
 
     async def update_pool(self, updated_pool: UpdatedPool, pool_id: int):
-        if updated_pool.appVer != await get_version('applications'):
+        if updated_pool.ver != await get_version('applications'):
             raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(code="Version mismatch"))
-        if not await get_pool(pool_id):
+        current_pool = await get_pool(pool_id)
+        if not current_pool:
             raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(
                                           code=f"Pool doesn't exist with ID {updated_pool.id}"))
-        await update_pool_status(updated_pool)
+        if updated_pool.status == 'active':
+            pool_installer_id = await get_pool_installer(pool_id)
+            if not pool_installer_id:
+                pool_installer_id = random.choice(await get_all_installers_data()).id
+            update_app_status_tasks = [update_app_status_and_installer(app.id, 'active', pool_installer_id)
+                                   for app in current_pool.entities if app.status != 'cancelled']
+            await asyncio.gather(*update_app_status_tasks)
+            await update_pool_installer(pool_id, pool_installer_id)
+        await update_pool_status(updated_pool.status, pool_id)
         await update_version('applications')
         updated_pool = await get_pool(pool_id)
         return AppPool(appVer=await get_version('applications'), entity=updated_pool)
