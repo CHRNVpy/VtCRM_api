@@ -55,7 +55,7 @@ class AppService:
                     if new_app.status == 'active':
                         installer = random.choice(await get_all_installers_data()).id
                     pool_id = await create_pool(installer)
-                    await  update_pool_status('active', pool_id)
+                    # await  update_pool_status('active', pool_id)
                     new_app.poolId = pool_id
 
                 installer_id = await get_pool_installer(new_app.poolId)
