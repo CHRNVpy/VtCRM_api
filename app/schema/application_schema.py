@@ -73,6 +73,7 @@ class ApplicationData(BaseModel):
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installDate: datetime.datetime
     poolId: Optional[int] = None
+    poolRowNum: Optional[int] = None
     hash: str
     images: Optional[List[CrmImage]] = []
     equipments: Optional[List[Equipment]] = []
@@ -88,6 +89,7 @@ class LineSetupApplicationData(BaseModel):
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installDate: datetime.datetime
     poolId: Optional[int] = None
+    poolRowNum: Optional[int] = None
     hash: str
     steps: Optional[List[LineSetupStepFull]] = []
 
