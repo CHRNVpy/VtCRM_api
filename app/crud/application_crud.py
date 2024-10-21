@@ -685,6 +685,7 @@ async def get_pool(pool_id: int) -> AppPoolData:
             app_pool.id AS pool_id, 
             app_pool.status AS pool_status,
             app_pool.installer_id AS pool_installer,
+            app_pool.row_num,
             users.firstname,
             users.middlename,
             users.lastname, 
@@ -719,8 +720,11 @@ async def get_pool(pool_id: int) -> AppPoolData:
                     ), JSON_ARRAY())
                 )
             ) AS applications
-        FROM 
-            app_pool
+        FROM (
+            SELECT *,
+                   ROW_NUMBER() OVER (ORDER BY id) AS row_num
+            FROM app_pool
+        ) AS app_pool
         LEFT JOIN 
             applications ON app_pool.id = applications.app_pool_id
         LEFT JOIN 
@@ -737,7 +741,7 @@ async def get_pool(pool_id: int) -> AppPoolData:
             async with conn.cursor() as cur:
                 await cur.execute(query, (pool_id,))
                 app_pool = await cur.fetchone()
-                pool_id, pool_status, pool_installer, installer_name, installer_middlename, installer_lastname, applications_json = app_pool
+                pool_id, pool_status, pool_installer, pool_row_num, installer_name, installer_middlename, installer_lastname, applications_json = app_pool
                 applications = json.loads(applications_json)
                 applications_list = []
                 for app in applications:
@@ -779,7 +783,7 @@ async def get_pool(pool_id: int) -> AppPoolData:
                         images=crm_images
                     )
                     applications_list.append(application_data)
-                return AppPoolData(id=pool_id, status=pool_status, installerId=pool_installer,
+                return AppPoolData(id=pool_id, poolRowNum=pool_row_num, status=pool_status, installerId=pool_installer,
                                    entities=applications_list) if app_pool else None
 
 
@@ -789,6 +793,7 @@ async def get_pools():
     app_pool.id AS pool_id, 
     app_pool.status AS pool_status,
     app_pool.installer_id AS pool_installer,
+    app_pool.row_num,
     users.firstname,
     users.middlename,
     users.lastname,
@@ -836,8 +841,11 @@ async def get_pools():
             ), JSON_ARRAY())
         )
     ) AS applications
-FROM 
-    app_pool
+FROM (
+        SELECT *,
+               ROW_NUMBER() OVER (ORDER BY id) AS row_num
+        FROM app_pool
+    ) AS app_pool
 LEFT JOIN 
     applications ON app_pool.id = applications.app_pool_id
 LEFT JOIN 
@@ -852,7 +860,7 @@ GROUP BY
                 results = await cur.fetchall()
                 processed_data = []
                 for app_pool in results:
-                    pool_id, pool_status, pool_installer, installer_name, installer_middlename, installer_lastname, applications_json = app_pool
+                    pool_id, pool_status, pool_installer, pool_row_num, installer_name, installer_middlename, installer_lastname, applications_json = app_pool
                     applications = json.loads(applications_json)
                     applications_list = []
                     for app in applications:
@@ -909,7 +917,7 @@ GROUP BY
                             equipments=crm_equipment
                         )
                         applications_list.append(application_data)
-                    processed_data.append(AppPoolData(id=pool_id, status=pool_status, installerId=pool_installer,
+                    processed_data.append(AppPoolData(id=pool_id, poolRowNum=pool_row_num, status=pool_status, installerId=pool_installer,
                                                       entities=applications_list))
                 return processed_data
 

@@ -167,9 +167,17 @@ class AppService:
                            imageVer=await get_version('images'),
                            entity=updated_application)
 
-    async def get_pools(self) -> AppPools:
+    async def get_pools(self, page: int, limit: int) -> AppPools:
         pools = await get_pools()
-        return AppPools(appVer=await get_version('applications'), entities=pools)
+        total_items = len(pools)
+        paginated_items = self.paginate(pools, page, limit)
+        total_pages = (total_items + limit - 1) // limit
+        return AppPools(appVer=await get_version('applications'),
+                        entities=paginated_items,
+                        page=page,
+                        perPage=limit,
+                        pages=total_pages,
+                        totalRows=total_items)
 
     async def update_pool(self, updated_pool: UpdatedPool, pool_id: int):
         if updated_pool.ver != await get_version('applications'):

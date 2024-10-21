@@ -128,6 +128,7 @@ class PaginatedApplicationsResponse(BaseModel):
 
 class AppPoolData(BaseModel):
     id: int
+    poolRowNum: int
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installerId: Optional[int] = None
     entities: List[ApplicationData]
@@ -146,6 +147,10 @@ class AppPool(BaseModel):
 class AppPools(BaseModel):
     appVer: int
     entities: List[AppPoolData]
+    page: int
+    perPage: int
+    pages: int
+    totalRows: int
 
 
 class AppPoolResponse(BaseModel):
