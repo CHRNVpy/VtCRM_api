@@ -108,7 +108,7 @@ async def get_application(app_id: int, steps: bool = False):
     base_query = '''SELECT 
                     a.*,
                     u.*,
-                    ROW_NUMBER() OVER (ORDER BY ap.id) AS pool_row_id,
+                    ap_with_row.row_id AS pool_row_id,
                     GROUP_CONCAT(
                         CONCAT(
                             '{"id":', i.id, 
@@ -144,15 +144,17 @@ async def get_application(app_id: int, steps: bool = False):
                     equipment e on a.id = e.application_id
                 LEFT JOIN
                     users u ON a.installer_id = u.id
-                LEFT JOIN
-                    app_pool ap ON a.app_pool_id = ap.id
+                LEFT JOIN 
+                (SELECT ap.*, 
+                        ROW_NUMBER() OVER (ORDER BY ap.id) AS row_id
+                 FROM app_pool ap) ap_with_row ON a.app_pool_id = ap_with_row.id
                 WHERE a.id = %s
                 GROUP BY a.id'''
 
     steps_query = '''SELECT
                     a.*,
                     u.*,
-                    ROW_NUMBER() OVER (ORDER BY ap.id) AS pool_row_id,
+                    ap_with_row.row_id AS pool_row_id,
                     IFNULL(JSON_ARRAYAGG(
                         JSON_OBJECT(
                             'type', c.type,
@@ -204,8 +206,10 @@ async def get_application(app_id: int, steps: bool = False):
                     coordinates c ON c.application_id = a.id
                 LEFT JOIN
                     users u ON a.installer_id = u.id
-                LEFT JOIN
-                    app_pool ap ON a.app_pool_id = ap.id
+                LEFT JOIN 
+                (SELECT ap.*, 
+                        ROW_NUMBER() OVER (ORDER BY ap.id) AS row_id
+                 FROM app_pool ap) ap_with_row ON a.app_pool_id = ap_with_row.id
                 WHERE
                     a.id = %s'''
 
