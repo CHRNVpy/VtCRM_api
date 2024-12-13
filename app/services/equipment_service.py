@@ -23,7 +23,7 @@ class EquipmentService:
                                       error_details=ErrorDetails(code="Version mismatch"))
         if await equipment_hash_exists(new_item.hash):
             equipment = await get_equipment_by_hash(new_item.hash)
-            await update_equipment(new_item, equipment.id)
+            await update_equipment(new_item.model_dump(exclude_unset=True), equipment.id)
             await update_version('equipment')
             equipment = await get_equipment_by_id(equipment.id)
             return SingleEquipment(ver=await get_version('equipment'), entity=equipment)
@@ -48,7 +48,7 @@ class EquipmentService:
         if not equipment_id:
             raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(code="Equipment ID required"))
-        await update_equipment(equipment, equipment_id)
+        await update_equipment(equipment.model_dump(exclude_unset=True), equipment_id)
         await update_version('equipment')
         equipment = await get_equipment_by_id(equipment_id)
         return SingleEquipment(ver=current_version, entity=equipment)

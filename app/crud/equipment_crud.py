@@ -32,7 +32,7 @@ async def get_all_equipment(name_filter: str = None,
         filters.extend([f'%{name_filter}%', f'%{name_filter}%', f'%{name_filter}%'])
 
     if status_filter and status_filter == 'base':
-        query += ' AND installer_id IS NULL'
+        query += ' AND installer_id IS NULL AND application_id IS NULL'
 
     if status_filter and status_filter == 'installer':
         query += ' AND installer_id IS NOT NULL'
@@ -129,29 +129,34 @@ async def create_equipment(equipment: NewEquipment):
                 return user_id
 
 
-async def update_equipment(equipment: Union[NewEquipment, UpdatedEquipment], equipment_id: int):
+async def update_equipment(equipment: Union[NewEquipment, UpdatedEquipment, dict[str, any]], equipment_id: int):
     query = 'UPDATE equipment SET '
     items = []
     params = []
 
-    if equipment.name:
-        items.append(f"name = %s")
-        params.append(equipment.name)
-    if equipment.serialNumber:
-        items.append(f"serial = %s")
-        params.append(equipment.serialNumber)
-    if equipment.comment:
-        items.append(f"comment = %s")
-        params.append(equipment.comment)
-    if equipment.applicationId:
-        items.append(f"application_id = %s")
-        params.append(equipment.applicationId)
-    if equipment.installerId:
-        items.append(f"installer_id = %s")
-        params.append(equipment.installerId)
+    # Iterate through all keys in the input dictionary
+    for key, value in equipment.items():
+        # Map the field names from schema to database column names
+        column_name = {
+            "name": "name",
+            "serialNumber": "serial",
+            "comment": "comment",
+            "applicationId": "application_id",
+            "installerId": "installer_id",
+            "hash": "hash"
+        }.get(key)
+
+        if column_name:
+            items.append(f"{column_name} = %s")
+            params.append(value)  # Add the value (can be None for SQL NULL)
+
+    # Check if there's anything to update
+    if not items:
+        raise ValueError("No valid fields provided for update.")
 
     query += ", ".join(items)
-    query += f" WHERE id = {equipment_id};"
+    query += " WHERE id = %s;"
+    params.append(equipment_id)
 
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
