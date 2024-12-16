@@ -448,8 +448,8 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
                                 comment=equipment_json['comment'],
                                 hash=equipment_json['hash'],
                                 # rowNum=equipment_json['row_num']
-                                applicationId=equipment_json.get('applicationId', None),
-                                installerId=equipment_json.get('installerId', None)
+                                applicationId=equipment_json['applicationId'] if equipment_json['applicationId'] else None,
+                                installerId=equipment_json['installerId'] if equipment_json['installerId'] else None
 
                             )
                             equipment.append(equipment_model)
