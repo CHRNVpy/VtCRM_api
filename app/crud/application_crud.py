@@ -358,7 +358,9 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
                             '{"id":', e.id, 
                             ',"name":"', IFNULL(e.name, ''), 
                             '","serial":"', IFNULL(e.serial, ''), 
-                            '","comment":"', IFNULL(e.comment, ''), 
+                            '","comment":"', IFNULL(e.comment, ''),
+                            '","applicationId":"', IFNULL(e.application_id, ''), 
+                            '","installerId":"', IFNULL(e.installer_id, ''),  
                             '","hash":"', IFNULL(REPLACE(e.hash, '"', '\"'), ''), 
                             '"}'
                         )
@@ -446,8 +448,9 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
                                 comment=equipment_json['comment'],
                                 hash=equipment_json['hash'],
                                 # rowNum=equipment_json['row_num']
-                                # installerId=img['installer_id'],
-                                # applicationId=img['application_id']
+                                applicationId=equipment_json['applicationId'],
+                                installerId=equipment_json['installerId']
+
                             )
                             equipment.append(equipment_model)
 
