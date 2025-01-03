@@ -847,7 +847,9 @@ async def get_pools():
                         'id', equipment.id, 
                         'name', equipment.name, 
                         'serial', equipment.serial, 
-                        'comment', equipment.comment, 
+                        'comment', equipment.comment,
+                        'installerId', equipment.installer_id,
+                        'applicationId', equipment.application_id, 
                         'hash', equipment.hash
                     )
                 )
@@ -907,6 +909,8 @@ GROUP BY
                                     name=item['name'],
                                     serialNumber=item['serial'],
                                     comment=item['comment'],
+                                    applicationId=item['applicationId'], #not sure we need this
+                                    installerId=item['installerId'], #not sure we need this
                                     hash=item['hash']
                                 )
 

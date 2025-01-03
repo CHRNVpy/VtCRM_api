@@ -1,8 +1,11 @@
 from typing import Optional, Union, List, Literal
 
-from pydantic import BaseModel
+from fastapi import status
+
+from pydantic import BaseModel, validator, field_validator
 
 from app.schema.error_schema import ErrorDetails
+from app.util.exception import VtCRM_HTTPException
 
 
 class NewEquipment(BaseModel):
@@ -13,6 +16,14 @@ class NewEquipment(BaseModel):
     applicationId: Optional[int] = None
     installerId: Optional[int] = None
     hash: str
+
+    @field_validator("name", "serialNumber", "hash", mode="before")
+    def validate_non_empty(cls, value, field):
+        if isinstance(value, str) and not value.strip():
+            raise VtCRM_HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                      error_details=ErrorDetails(code=f"{field.field_name} cannot be empty or "
+                                                                      f"only whitespace."))
+        return value
 
 
 class UpdatedEquipment(BaseModel):
