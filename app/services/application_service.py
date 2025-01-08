@@ -180,12 +180,23 @@ class AppService:
                         pages=total_pages,
                         totalRows=total_items)
 
+    async def get_pool(self, pool_id: int) -> AppPool:
+        try:
+            pool = await get_pool(pool_id)
+        except Exception:
+            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                      error_details=ErrorDetails(
+                                          code=f"Pool doesn't exist with ID {pool_id}"))
+        return AppPool(appVer=await get_version('applications'),
+                        entity=pool)
+
     async def update_pool(self, updated_pool: UpdatedPool, pool_id: int):
         if updated_pool.ver != await get_version('applications'):
             raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(code="Version mismatch"))
-        current_pool = await get_pool(pool_id)
-        if not current_pool:
+        try:
+            current_pool = await get_pool(pool_id)
+        except Exception:
             raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(
                                           code=f"Pool doesn't exist with ID {updated_pool.id}"))
