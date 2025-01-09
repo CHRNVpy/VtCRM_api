@@ -51,7 +51,7 @@ class EquipmentService:
         await update_equipment(equipment.model_dump(exclude_unset=True), equipment_id)
         await update_version('equipment')
         equipment = await get_equipment_by_id(equipment_id)
-        return SingleEquipment(ver=current_version, entity=equipment)
+        return SingleEquipment(ver=await get_version('equipment'), entity=equipment)
 
     async def list_equipment(self, page: int, limit: int, name_filter, status_filter, installer_filter):
         version = await get_version('equipment')
