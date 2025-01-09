@@ -732,7 +732,22 @@ async def get_pool(pool_id: int) -> AppPoolData:
                         )
                         FROM images
                         WHERE images.application_id = applications.id
-                    ), JSON_ARRAY())
+                    ), JSON_ARRAY()),
+                    'equipment', COALESCE((
+                    SELECT JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'id', equipment.id, 
+                            'name', equipment.name, 
+                            'serial', equipment.serial, 
+                            'comment', equipment.comment,
+                            'installerId', equipment.installer_id,
+                            'applicationId', equipment.application_id, 
+                            'hash', equipment.hash
+                        )
+                    )
+                    FROM equipment
+                    WHERE equipment.application_id = applications.id
+                ), JSON_ARRAY())
                 )
             ) AS applications
         FROM (
@@ -761,7 +776,9 @@ async def get_pool(pool_id: int) -> AppPoolData:
                 applications_list = []
                 for app in applications:
                     # Parse the images JSON string
+                    equipment_list = app.get('equipment')
                     images_list = app.get('images')
+                    crm_equipments = []
                     crm_images = []
                     if images_list:
                         # Parse each JSON object
@@ -779,6 +796,20 @@ async def get_pool(pool_id: int) -> AppPoolData:
                             )
                             crm_images.append(crm_image)
 
+                    if equipment_list:
+                        for item in equipment_list:
+                            equipment_model = Equipment(
+                                id=item['id'],
+                                name=item['name'],
+                                serialNumber=item['serial'],
+                                comment=item['comment'],
+                                applicationId=item['applicationId'],  # not sure we need this
+                                installerId=item['installerId'],  # not sure we need this
+                                hash=item['hash']
+                            )
+
+                            crm_equipments.append(equipment_model)
+
                     # Create ApplicationImageData object
                     application_data = ApplicationData(
                         id=app['id'],
@@ -795,7 +826,8 @@ async def get_pool(pool_id: int) -> AppPoolData:
                         installDate=app['installDate'],
                         hash=app['hash'],
                         poolId=app['poolId'],
-                        images=crm_images
+                        images=crm_images,
+                        equipments=crm_equipments
                     )
                     applications_list.append(application_data)
                 return AppPoolData(id=pool_id, poolRowNum=pool_row_num, status=pool_status, installerId=pool_installer,
