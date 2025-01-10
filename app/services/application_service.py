@@ -9,7 +9,7 @@ from app.crud.application_crud import create_application, create_pool, get_appli
     update_pool_status, get_pool, get_pools, get_installer_applications, add_step, add_step_image, add_step_equipment, \
     apps_hash_exists, get_application_id_by_hash, delete_steps, update_app_status_and_installer, all_pool_apps_approved, \
     update_pool_installer
-from app.crud.equipment_crud import update_equipment
+from app.crud.equipment_crud import update_equipment, reset_application_equipment
 from app.crud.installer_crud import get_all_installers_data
 from app.schema.application_schema import NewApplication, Application, ApplicationsList, UpdatedApplicationData, \
     UpdatedPool, AppPool, AppPools, UpdatedInstallerApplicationData
@@ -48,6 +48,7 @@ class AppService:
                 await update_app(new_app, application_id)
                 await update_version('applications')
                 if new_app.equipments:
+                    await reset_application_equipment(application_id)
                     await asyncio.gather(*[update_equipment({"applicationId": application_id}, eq)
                                            for eq in new_app.equipments])
                 app = await get_application(application_id)
@@ -128,6 +129,7 @@ class AppService:
         await update_app(updated_app, application_id)
         await update_version('applications')
         if updated_app.equipments:
+            await reset_application_equipment(application_id)
             await asyncio.gather(*[update_equipment({"applicationId": application_id}, eq)
                                    for eq in updated_app.equipments])
         updated_application = await get_application(application_id)

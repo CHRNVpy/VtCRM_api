@@ -163,3 +163,14 @@ async def update_equipment(equipment: Union[NewEquipment, UpdatedEquipment, dict
             async with conn.cursor() as cur:
                 await cur.execute(query, params)
                 await conn.commit()
+
+async def reset_application_equipment(application_id: int):
+
+    query = 'UPDATE equipment SET application_id = NULL, installer_id = NULL WHERE application_id = %s'
+
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(query, (application_id,))
+                await conn.commit()
+
