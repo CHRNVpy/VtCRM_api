@@ -9,6 +9,7 @@ from app.crud.application_crud import create_application, create_pool, get_appli
     update_pool_status, get_pool, get_pools, get_installer_applications, add_step, add_step_image, add_step_equipment, \
     apps_hash_exists, get_application_id_by_hash, delete_steps, update_app_status_and_installer, all_pool_apps_approved, \
     update_pool_installer
+from app.crud.equipment_crud import update_equipment
 from app.crud.installer_crud import get_all_installers_data
 from app.schema.application_schema import NewApplication, Application, ApplicationsList, UpdatedApplicationData, \
     UpdatedPool, AppPool, AppPools, UpdatedInstallerApplicationData
@@ -46,7 +47,11 @@ class AppService:
                 application_id = await get_application_id_by_hash(new_app.hash)
                 await update_app(new_app, application_id)
                 await update_version('applications')
+                if new_app.equipments:
+                    await asyncio.gather(*[update_equipment({"applicationId": application_id}, eq)
+                                           for eq in new_app.equipments])
                 app = await get_application(application_id)
+
                 return Application(appVer=await get_version('applications'),
                                    imageVer=await get_version('images'), entity=app)
             else:
@@ -62,7 +67,11 @@ class AppService:
                 installer_id = await get_pool_installer(new_app.poolId)
                 created_app_id = await create_application(new_app, installer_id)
                 await update_version('applications')
+                if new_app.equipments:
+                    await asyncio.gather(*[update_equipment({"applicationId": created_app_id}, eq)
+                                           for eq in new_app.equipments])
                 app = await get_application(created_app_id)
+
                 return Application(appVer=await get_version('applications'),
                                    imageVer=await get_version('images'), entity=app)
         except Exception as e:
@@ -118,11 +127,15 @@ class AppService:
                                           code=f"Application doesn't exist with ID {updated_app.id}"))
         await update_app(updated_app, application_id)
         await update_version('applications')
+        if updated_app.equipments:
+            await asyncio.gather(*[update_equipment({"applicationId": application_id}, eq)
+                                   for eq in updated_app.equipments])
         updated_application = await get_application(application_id)
         if updated_application.status == 'finished':
             await self.finish_pool(application_id)
         if updated_application.status == 'approved':
             await self.approve_pool(application_id)
+
         return Application(appVer=await get_version('applications'),
                            imageVer=await get_version('images'),
                            entity=updated_application)

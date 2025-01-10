@@ -29,17 +29,19 @@ class NewApplication(BaseModel):
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = 'pending'
     installDate: datetime.datetime
     poolId: Optional[int] = None
+    equipments: Optional[List[int]] = None
     hash: str
 
 
 class UpdatedApplicationData(BaseModel):
-
     ver: int
     client: Optional[str] = None
     address: Optional[str] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installDate: Optional[datetime.datetime] = None
+    equipments: Optional[List[int]] = None
+
 
 class LineSetupStep(BaseModel):
     type: Literal["start", "step", "stop"]
