@@ -128,10 +128,13 @@ class AppService:
                                           code=f"Application doesn't exist with ID {updated_app.id}"))
         await update_app(updated_app, application_id)
         await update_version('applications')
-        if updated_app.equipments:
-            await reset_application_equipment(application_id)
-            await asyncio.gather(*[update_equipment({"applicationId": application_id}, eq)
-                                   for eq in updated_app.equipments])
+        if updated_app.equipments is not None:  # Check if equipments field is explicitly set
+            if not updated_app.equipments:
+                await reset_application_equipment(application_id)
+            else:
+                await reset_application_equipment(application_id)
+                await asyncio.gather(*[update_equipment({"applicationId": application_id}, eq)
+                                       for eq in updated_app.equipments])
         updated_application = await get_application(application_id)
         if updated_application.status == 'finished':
             await self.finish_pool(application_id)
