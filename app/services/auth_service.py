@@ -40,7 +40,7 @@ class AuthService:
         # return pwd_context.verify(plain_password, db_password)
         return plain_password == db_password
 
-    async def authenticate_user(self, login: str, password: str):
+    async def authenticate_user(self, login: str, password: str) -> User | bool:
         user = await get_user(login)
         if not user:
             return False
@@ -58,7 +58,7 @@ class AuthService:
 
         await save_refresh_token(user.login, user.password, refresh_token)
 
-        return {"accessToken": access_token, "refreshToken": refresh_token}
+        return {"accessToken": access_token, "refreshToken": refresh_token, "role": authenticated_user.role}
 
     async def refresh_access_token(self, request: RefreshToken):
         token_payload = decode_token(request.refreshToken)

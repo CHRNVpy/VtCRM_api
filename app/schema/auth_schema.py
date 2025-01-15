@@ -10,6 +10,7 @@ from app.schema.user_schema import User
 class AuthTokens(BaseModel):
     accessToken: str
     refreshToken: str
+    role: str
 
 
 class RefreshToken(BaseModel):
