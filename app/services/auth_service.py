@@ -81,7 +81,7 @@ class AuthService:
         # Generate a new access token
         access_token = self.create_access_token(data={"sub": username})
 
-        return {"accessToken": access_token, "refreshToken": request.refreshToken}
+        return {"accessToken": access_token, "refreshToken": request.refreshToken, "role": ''}
 
     async def get_me(self, current_user):
         return await get_user_data(current_user)
