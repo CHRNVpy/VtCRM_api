@@ -112,10 +112,14 @@ class AppService:
         if not application:
             raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(code=f"Application doesn't exist with ID {app_id}"))
-
-        return Application(appVer=await get_version('applications'),
-                           imageVer=await get_version('images'),
-                           entity=application)
+        if application.type == 'line setup':
+            return Application(appVer=await get_version('applications'),
+                               imageVer=await get_version('images'),
+                               entity=application)
+        else:
+            return Application(appVer=await get_version('applications'),
+                               imageVer=await get_version('images'),
+                               entity=await get_application(app_id))
 
     async def update_app(self, updated_app: UpdatedApplicationData, application_id: int):
         if updated_app.ver != await get_version('applications'):

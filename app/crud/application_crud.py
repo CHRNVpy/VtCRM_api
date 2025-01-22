@@ -478,6 +478,29 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
 
 
 async def get_installer_applications(current_user: str):
+    # query = '''SELECT
+    #                     a.*,
+    #                     GROUP_CONCAT(
+    #                         CONCAT(
+    #                             '{"id":', i.id,
+    #                             ',"name":"', IFNULL(i.name, ''),
+    #                             '","mime_type":"', IFNULL(i.mime_type, ''),
+    #                             '","width":', IFNULL(i.width, 'null'),
+    #                             ',"height":', IFNULL(i.height, 'null'),
+    #                             ',"size":', IFNULL(i.size, 'null'),
+    #                             ',"path":"', IFNULL(i.path, ''),
+    #                             '","application_id":', IFNULL(i.application_id, 'null'),
+    #                             ',"installer_id":', IFNULL(i.installer_id, 'null'),
+    #                             '}'
+    #                         )
+    #                     ) AS images
+    #                 FROM
+    #                     applications a
+    #                 LEFT JOIN
+    #                     images i ON a.id = i.application_id
+    #                 WHERE a.installer_id = (SELECT id FROM users WHERE login = %s) GROUP BY a.id
+    #                 ORDER BY a.install_date DESC'''
+
     query = '''SELECT 
                         a.*,
                         GROUP_CONCAT(
@@ -493,11 +516,24 @@ async def get_installer_applications(current_user: str):
                                 ',"installer_id":', IFNULL(i.installer_id, 'null'), 
                                 '}'
                             )
-                        ) AS images
-                    FROM 
-                        applications a
+                        ) AS images,
+                        GROUP_CONCAT(
+                            CONCAT(
+                                '{"id":', e.id, 
+                                ',"name":"', IFNULL(e.name, ''), 
+                                '","serial":"', IFNULL(e.serial, ''), 
+                                '","comment":"', IFNULL(e.comment, ''),
+                                '","applicationId":"', IFNULL(e.application_id, ''), 
+                                '","installerId":"', IFNULL(e.installer_id, ''),  
+                                '","hash":"', IFNULL(REPLACE(e.hash, '"', '\"'), ''), 
+                                '"}'
+                            )
+                        ) AS equipment
+                    FROM applications a
                     LEFT JOIN 
-                        images i ON a.id = i.application_id 
+                        images i ON a.id = i.application_id
+                    LEFT JOIN 
+                        equipment e ON a.id = e.application_id
                     WHERE a.installer_id = (SELECT id FROM users WHERE login = %s) GROUP BY a.id
                     ORDER BY a.install_date DESC'''
 
@@ -534,6 +570,28 @@ async def get_installer_applications(current_user: str):
                             )
                             crm_images.append(crm_image)
 
+                    equipment_str = item.get('equipment')
+
+                    equipment = []
+                    if equipment_str:
+                        equipment_list = equipment_str.split('},{')
+                        # Properly format each JSON object
+                        equipment_list = [item.strip('{}') for item in equipment_list]
+                        equipment_list = ['{' + item + '}' for item in equipment_list]
+                        # Parse each JSON object
+                        for equipment_el in equipment_list:
+                            equipment_json = json.loads(equipment_el)
+                            equipment_model = Equipment(
+                                id=equipment_json['id'],
+                                name=equipment_json['name'],
+                                serialNumber=equipment_json['serial'],
+                                comment=equipment_json['comment'],
+                                hash=equipment_json['hash']
+                                # installerId=img['installer_id'],
+                                # applicationId=img['application_id']
+                            )
+                            equipment.append(equipment_model)
+
                     # Create ApplicationImageData object
                     application_data = ApplicationData(
                         id=item['id'],
@@ -545,7 +603,8 @@ async def get_installer_applications(current_user: str):
                         installDate=item['install_date'],
                         poolId=item['app_pool_id'],
                         hash=item['hash'],
-                        images=crm_images
+                        images=crm_images,
+                        equipments=equipment
                     )
                     processed_data.append(application_data)
                 return processed_data

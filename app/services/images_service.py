@@ -20,12 +20,11 @@ class ImagesService:
     def __init__(self):
         pass
 
-    async def create_image(self, file: UploadFile, current_user: str):
-        # metadata_dict = json.loads(image_metadata)
-        # image_metadata = ImageMetadata(**metadata_dict)
-        # if image_metadata.ver != await get_version('images'):
-        #     raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-        #                               error_details=ErrorDetails(code="Version mismatch"))
+    async def create_image(self, file: UploadFile, image_metadata: ImageMetadata, current_user: str):
+
+        if image_metadata.ver != await get_version('images'):
+            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                      error_details=ErrorDetails(code="Version mismatch"))
         mime_type, _ = mimetypes.guess_type(file.filename)
         if not mime_type or not mime_type.startswith('image'):
             raise VtCRM_HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -64,4 +63,4 @@ class ImagesService:
                                       application_id=image_metadata.applicationId)
         await update_version('images')
 
-        return ImageVersion(ver=await get_version('images'), image=await get_image(image_id))
+        return ImageVersion(ver=await get_version('images'), entity=await get_image(image_id))

@@ -7,8 +7,8 @@ from app.schema.error_schema import ErrorDetails
 
 class ImageMetadata(BaseModel):
     ver: int
-    applicationId: Optional[int] = None
-    installerId: Optional[int] = None
+    applicationId: int
+    installerId: int
 
 
 class CrmImage(BaseModel):
