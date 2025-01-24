@@ -8,7 +8,7 @@ import aiofiles
 from PIL import Image
 from fastapi import UploadFile, status
 
-from app.crud.admin_crud import get_user_id, get_version, update_version
+# from app.crud.admin_crud import get_user_id, get_version, update_version
 from app.crud.images_crud import create_image, get_image
 from app.schema.error_schema import ErrorDetails
 from app.schema.images_schema import ImageMetadata, ImageVersion
@@ -20,11 +20,8 @@ class ImagesService:
     def __init__(self):
         pass
 
-    async def create_image(self, file: UploadFile, image_metadata: ImageMetadata, current_user: str):
+    async def create_image(self, file: UploadFile, current_user: str):
 
-        if image_metadata.ver != await get_version('images'):
-            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                      error_details=ErrorDetails(code="Version mismatch"))
         mime_type, _ = mimetypes.guess_type(file.filename)
         if not mime_type or not mime_type.startswith('image'):
             raise VtCRM_HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -56,11 +53,10 @@ class ImagesService:
 
         image_path = f"uploads/{year}/{month}/{unique_filename}"
 
-        user_id = await get_user_id(current_user)
+        # user_id = await get_user_id(current_user)
 
         image_id = await create_image(unique_filename, mime_type, width, height,
-                                      file.size, image_path, installer_id=user_id,
-                                      application_id=image_metadata.applicationId)
-        await update_version('images')
+                                      file.size, image_path)
+        # await update_version('images')
 
-        return ImageVersion(ver=await get_version('images'), entity=await get_image(image_id))
+        return ImageVersion(entity=await get_image(image_id))

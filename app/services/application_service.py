@@ -3,14 +3,15 @@ import random
 
 from fastapi import status
 
-from app.crud.admin_crud import is_admin, get_version, update_version
+from app.crud.admin_crud import is_admin, get_version, update_version, get_user_id
 from app.crud.application_crud import create_application, create_pool, get_application, \
     get_applications, update_app, get_pool_installer, all_pool_apps_finished, set_pool_status, \
     update_pool_status, get_pool, get_pools, get_installer_applications, add_step, add_step_image, add_step_equipment, \
     apps_hash_exists, get_application_id_by_hash, delete_steps, update_app_status_and_installer, all_pool_apps_approved, \
     update_pool_installer
 from app.crud.equipment_crud import update_equipment, reset_application_equipment
-from app.crud.installer_crud import get_all_installers_data
+from app.crud.images_crud import update_image, reset_images
+from app.crud.installer_crud import get_all_installers_data, get_user
 from app.schema.application_schema import NewApplication, Application, ApplicationsList, UpdatedApplicationData, \
     UpdatedPool, AppPool, AppPools, UpdatedInstallerApplicationData
 from app.schema.error_schema import ErrorDetails
@@ -86,7 +87,7 @@ class AppService:
         paginated_items = self.paginate(applications, page, limit)
         total_pages = (total_items + limit - 1) // limit
         return ApplicationsList(appVer=await get_version('applications'),
-                                             imageVer=await get_version('images'),
+                                             # imageVer=await get_version('images'),
                                              entities=paginated_items,
                                              page=page,
                                              perPage=limit,
@@ -100,7 +101,7 @@ class AppService:
         paginated_items = self.paginate(applications, page, limit)
         total_pages = (total_items + limit - 1) // limit
         return ApplicationsList(appVer=await get_version('applications'),
-                                imageVer=await get_version('images'),
+                                # imageVer=await get_version('images'),
                                 entities=paginated_items,
                                 page=page,
                                 perPage=limit,
@@ -139,6 +140,7 @@ class AppService:
                 await reset_application_equipment(application_id)
                 await asyncio.gather(*[update_equipment({"applicationId": application_id}, eq)
                                        for eq in updated_app.equipments])
+
         updated_application = await get_application(application_id)
         if updated_application.status == 'finished':
             await self.finish_pool(application_id)
@@ -146,10 +148,13 @@ class AppService:
             await self.approve_pool(application_id)
 
         return Application(appVer=await get_version('applications'),
-                           imageVer=await get_version('images'),
+                           # imageVer=await get_version('images'),
                            entity=updated_application)
 
-    async def update_installer_app(self, updated_app: UpdatedInstallerApplicationData, application_id: int):
+    async def update_installer_app(self,
+                                   updated_app: UpdatedInstallerApplicationData,
+                                   current_user: str,
+                                   application_id: int):
         if updated_app.ver != await get_version('applications'):
             raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(code="Version mismatch"))
@@ -160,7 +165,19 @@ class AppService:
                                       error_details=ErrorDetails(
                                           code=f"Application doesn't exist with ID {updated_app.id}"))
 
+        installer_id = await get_user_id(current_user)
+
         await update_app(updated_app, application_id)
+
+        if updated_app.images is not None:
+            if updated_app.images:
+                await asyncio.gather(*[
+                    update_image(image_id, application_id, installer_id)
+                    for image_id in updated_app.images
+                ])
+            else:
+                await reset_images(application_id)
+
         await update_version('applications')
         if updated_app.status == 'finished':
             await self.finish_pool(application_id)
@@ -173,22 +190,31 @@ class AppService:
 
                 step_id = await add_step(step, application_id)
 
-                image_tasks = [add_step_image(step_id, image_id) for image_id in step.images]
-                update_image_ver_tasks = [update_version('images') for i in range(len(image_tasks))]
+                image_tasks = [add_step_image(step_id,
+                                              application_id,
+                                              installer_id,
+                                              image_id) for image_id in step.images]
+
+                update_image_ver_tasks = [update_version('images') for _ in range(len(image_tasks))]
+
                 equipment_tasks = [add_step_equipment(step_id, equipment_id) for equipment_id in step.equipments]
-                update_equipment_ver_tasks = [update_version('equipment') for i in range(len(equipment_tasks))]
+
+                update_equipment_ver_tasks = [update_version('equipment') for _ in range(len(equipment_tasks))]
 
                 await asyncio.gather(*image_tasks, *update_image_ver_tasks, *equipment_tasks, *update_equipment_ver_tasks)
 
-                return Application(appVer=await get_version('applications'),
-                                   imageVer=await get_version('images'),
-                                   entity=await get_application(application_id, steps=True))
+                # return Application(appVer=await get_version('applications'),
+                #                    # imageVer=await get_version('images'),
+                #                    entity=await self.get_application(application_id, steps=True))
 
-        updated_application = await get_application(application_id)
+        return await self.get_app(application_id)
 
-        return Application(appVer=await get_version('applications'),
-                           imageVer=await get_version('images'),
-                           entity=updated_application)
+        # updated_application = await get_application(application_id, steps=True)
+        #
+        # return Application(appVer=await get_version('applications'),
+        #                    # imageVer=await get_version('images'),
+        #                    entity=updated_application)
+
 
     async def get_pools(self, page: int, limit: int) -> AppPools:
         pools = await get_pools()

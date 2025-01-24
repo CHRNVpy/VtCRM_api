@@ -18,13 +18,7 @@ service = ImagesService()
              response_model=ImageResponse,
              responses={401: {"description": "Invalid access token"}})
 async def upload_image(file: UploadFile = File(...),
-                       metadata: str = Form(ImageMetadata),
                        current_user: str = Depends(get_current_user)):
-    try:
-        parsed_metadata = ImageMetadata.model_validate_json(metadata)
-    except ValidationError as e:
-        raise VtCRM_HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                                  error_details=ErrorDetails(code=str(e)))
 
-    response = await service.create_image(file, parsed_metadata, current_user)
+    response = await service.create_image(file, current_user)
     return ImageResponse(status='ok', data=response)

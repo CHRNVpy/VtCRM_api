@@ -19,12 +19,12 @@ class CrmImage(BaseModel):
     height: float
     size: float
     path: str
-    installerId: int
-    applicationId: Optional[int] = None
+    installerId: Optional[int]
+    applicationId: Optional[int]
 
 
 class ImageVersion(BaseModel):
-    ver: int
+    # ver: int
     entity: CrmImage
 
 

@@ -61,6 +61,7 @@ class UpdatedInstallerApplicationData(BaseModel):
     ver: int
     status: Optional[Literal['finished']] = None
     installedDate: Optional[datetime.datetime] = None
+    images: Optional[List[int]] = None
     steps: Optional[List[LineSetupStep]] = None
 
 
@@ -98,7 +99,7 @@ class LineSetupApplicationData(BaseModel):
 
 class Application(BaseModel):
     appVer: int
-    imageVer: int
+    # imageVer: int
     entity: Union[ApplicationData, LineSetupApplicationData]
 
 
@@ -109,8 +110,8 @@ class ApplicationResponse(BaseModel):
 
 class ApplicationsList(BaseModel):
     appVer: int
-    imageVer: int
-    entities: List[ApplicationData]
+    # imageVer: int
+    entities: List[ApplicationData | LineSetupApplicationData]
     page: int
     perPage: int
     pages: int

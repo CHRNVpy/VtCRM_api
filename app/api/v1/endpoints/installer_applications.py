@@ -36,5 +36,5 @@ async def get_installer_application(application_id: int,
 async def update_installer_application(updated_app: UpdatedInstallerApplicationData,
                                        application_id: int,
                                        current_user: str = Depends(get_current_user)):
-    response = await service.update_installer_app(updated_app, application_id)
+    response = await service.update_installer_app(updated_app, current_user, application_id)
     return ApplicationResponse(status='ok', data=response)
