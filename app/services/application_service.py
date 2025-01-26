@@ -115,11 +115,11 @@ class AppService:
                                       error_details=ErrorDetails(code=f"Application doesn't exist with ID {app_id}"))
         if application.type == 'line setup':
             return Application(appVer=await get_version('applications'),
-                               imageVer=await get_version('images'),
+                               # imageVer=await get_version('images'),
                                entity=application)
         else:
             return Application(appVer=await get_version('applications'),
-                               imageVer=await get_version('images'),
+                               # imageVer=await get_version('images'),
                                entity=await get_application(app_id))
 
     async def update_app(self, updated_app: UpdatedApplicationData, application_id: int):
@@ -197,7 +197,9 @@ class AppService:
 
                 update_image_ver_tasks = [update_version('images') for _ in range(len(image_tasks))]
 
-                equipment_tasks = [add_step_equipment(step_id, equipment_id) for equipment_id in step.equipments]
+                equipment_tasks = [add_step_equipment(step_id,
+                                                      application_id,
+                                                      equipment_id) for equipment_id in step.equipments]
 
                 update_equipment_ver_tasks = [update_version('equipment') for _ in range(len(equipment_tasks))]
 

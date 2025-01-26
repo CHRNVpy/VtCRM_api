@@ -607,7 +607,7 @@ async def get_installer_applications(current_user: str):
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(query, current_user)
                 results = await cur.fetchall()
-                pprint(results)
+                # pprint(results)
                 installer_applications = []
                 for item in results:
                     # Parse the images JSON string
@@ -1221,12 +1221,14 @@ async def add_step_image(step_id: int, application_id: int, installer_id: int, i
                 await conn.commit()
 
 
-async def add_step_equipment(step_id: int, equipment_id: int):
-    query = '''UPDATE equipment SET step_id = %s WHERE id = %s'''
+async def add_step_equipment(step_id: int,
+                             application_id: int,
+                             equipment_id: int):
+    query = '''UPDATE equipment SET application_id = %s, installer_id = %s, step_id = %s WHERE id = %s'''
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(query, (step_id, equipment_id))
+                await cur.execute(query, (application_id, None, step_id, equipment_id))
                 await conn.commit()
 
 
