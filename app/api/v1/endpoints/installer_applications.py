@@ -26,7 +26,7 @@ async def get_installer_applications(page: int = Query(1, ge=1), per_page: int =
             responses={401: {"description": "Incorrect username or password"}})
 async def get_installer_application(application_id: int,
                                     current_user: str = Depends(get_current_user)):
-    response = await service.get_app(application_id)
+    response = await service.get_installer_app(application_id)
     return ApplicationResponse(status='ok', data=response)
 
 

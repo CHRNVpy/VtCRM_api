@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -22,7 +22,7 @@ class AuthService:
 
     def create_access_token(self, data: dict):
         to_encode = data.copy()
-        expire = datetime.utcnow() + timedelta(minutes=configs.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(UTC) + timedelta(minutes=configs.ACCESS_TOKEN_EXPIRE_MINUTES)
         to_encode.update({"exp": expire})
         encoded_jwt = jwt.encode(to_encode, configs.SECRET_KEY, algorithm=configs.ALGORITHM)
         return encoded_jwt
@@ -30,7 +30,7 @@ class AuthService:
     # Function to create refresh token
     def create_refresh_token(self, data: dict):
         to_encode = data.copy()
-        expire = datetime.utcnow() + timedelta(days=configs.REFRESH_TOKEN_EXPIRE_YEARS * 365)
+        expire = datetime.now(UTC) + timedelta(days=configs.REFRESH_TOKEN_EXPIRE_YEARS * 365)
         # expire = datetime.utcnow() + timedelta(minutes=1)
         to_encode.update({"exp": expire})
         encoded_jwt = jwt.encode(to_encode, configs.SECRET_KEY, algorithm=configs.ALGORITHM)

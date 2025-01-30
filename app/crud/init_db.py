@@ -44,6 +44,7 @@ async def init_db():
                     "install_date DATETIME, "
                     "app_pool_id INT, "
                     "hash TEXT, "
+                    "installed_date DATETIME, "
                     "FOREIGN KEY(installer_id) REFERENCES users(id), "
                     "FOREIGN KEY(app_pool_id) REFERENCES app_pool(id))"
                 )
@@ -52,8 +53,8 @@ async def init_db():
                     "CREATE TABLE IF NOT EXISTS coordinates ("
                     "id INT AUTO_INCREMENT PRIMARY KEY, "
                     "type TEXT, "
-                    "latitude DECIMAL, "
-                    "longitude DECIMAL, "
+                    "latitude DOUBLE, "
+                    "longitude DOUBLE, "
                     "application_id INT, "
                     "FOREIGN KEY(application_id) REFERENCES applications(id))"
                 )

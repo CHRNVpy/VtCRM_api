@@ -256,6 +256,7 @@ async def get_application(app_id: int, steps: bool = False):
                                                                     comment=results['comment'],
                                                                     status=results['status'],
                                                                     installDate=results['install_date'],
+                                                                    installedDate=results['installed_date'],
                                                                     poolId=results['app_pool_id'],
                                                                     poolRowNum=results['pool_row_id'],
                                                                     hash=results['hash'],
@@ -326,6 +327,7 @@ async def get_application(app_id: int, steps: bool = False):
                         comment=results['comment'],
                         status=results['status'],
                         installDate=results['install_date'],
+                        installedDate=results['installed_date'],
                         poolId=results['app_pool_id'],
                         poolRowNum=results['pool_row_id'],
                         hash=results['hash'],
@@ -469,6 +471,7 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
                         comment=item['comment'],
                         status=item['status'],
                         installDate=item['install_date'],
+                        installedDate=item['installed_date'],
                         poolId=item['app_pool_id'],
                         hash=item['hash'],
                         images=crm_images,
@@ -705,6 +708,7 @@ async def get_installer_applications(current_user: str):
                                                                     comment=item['comment'],
                                                                     status=item['status'],
                                                                     installDate=item['install_date'],
+                                                                    installedDate=item['installed_date'],
                                                                     poolId=item['app_pool_id'],
                                                                     # poolRowNum=item['pool_row_id'],
                                                                     hash=item['hash'],
@@ -767,6 +771,7 @@ async def get_installer_applications(current_user: str):
                             comment=item['comment'],
                             status=item['status'],
                             installDate=item['install_date'],
+                            installedDate=item['installed_date'],
                             poolId=item['app_pool_id'],
                             # poolRowNum=results['pool_row_id'],
                             hash=item['hash'],
@@ -778,9 +783,214 @@ async def get_installer_applications(current_user: str):
 
                 return  installer_applications
 
+async def get_installer_application(application_id: int):
 
-# pprint(asyncio.run(get_installer_applications('55555')))
+    query = '''SELECT
+                a.*,
+                u.*,
+                IFNULL(
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM coordinates c
+                            WHERE c.application_id = a.id
+                        ) THEN JSON_ARRAYAGG(
+                            JSON_OBJECT(
+                                'type', c.type,
+                                'images', (
+                                    SELECT IFNULL(JSON_ARRAYAGG(
+                                        JSON_OBJECT(
+                                            'id', img.id,
+                                            'name', img.name,
+                                            'mimeType', img.mime_type,
+                                            'width', img.width,
+                                            'height', img.height,
+                                            'size', img.size,
+                                            'path', img.path,
+                                            'applicationId', img.application_id,
+                                            'installerId', img.installer_id
+                                        )
+                                    ), JSON_ARRAY())
+                                    FROM images img
+                                    WHERE img.application_id = a.id AND img.step_id = c.id
+                                ),
+                                'coords', JSON_OBJECT(
+                                    'latitude', c.latitude,
+                                    'longitude', c.longitude
+                                ),
+                                'equipments', (
+                                    SELECT IFNULL(JSON_ARRAYAGG(
+                                        JSON_OBJECT(
+                                            'id', eq.id,
+                                            'name', eq.name,
+                                            'serialNumber', eq.serial,
+                                            'status', eq.status,
+                                            'comment', eq.comment,
+                                            'applicationId', eq.application_id,
+                                            'installerId', eq.installer_id,
+                                            'hash', eq.hash
+                                        )
+                                    ), JSON_ARRAY())
+                                    FROM equipment eq
+                                    WHERE eq.application_id = a.id AND eq.step_id = c.id
+                                )
+                            )
+                        )
+                        ELSE JSON_ARRAY()
+                    END,
+                JSON_ARRAY()) AS steps,
+                IFNULL((
+                    SELECT JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'id', img.id,
+                            'name', img.name,
+                            'mimeType', img.mime_type,
+                            'width', img.width,
+                            'height', img.height,
+                            'size', img.size,
+                            'path', img.path,
+                            'applicationId', img.application_id,
+                            'installerId', img.installer_id
+                        )
+                    )
+                    FROM images img
+                    WHERE img.application_id = a.id
+                ), JSON_ARRAY()) AS images,
+                IFNULL((
+                    SELECT JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'id', eq.id,
+                            'name', eq.name,
+                            'serialNumber', eq.serial,
+                            'status', eq.status,
+                            'comment', eq.comment,
+                            'applicationId', eq.application_id,
+                            'installerId', eq.installer_id,
+                            'hash', eq.hash
+                        )
+                    )
+                    FROM equipment eq
+                    WHERE eq.application_id = a.id
+                ), JSON_ARRAY()) AS equipments
+            FROM (
+                SELECT *,
+                       ROW_NUMBER() OVER (ORDER BY id) AS row_num
+                FROM applications
+            ) AS a
+            LEFT JOIN
+                coordinates c ON c.application_id = a.id
+            LEFT JOIN
+                users u ON a.installer_id = u.id
+            WHERE a.id = %s;'''
 
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cur:
+                await cur.execute(query, application_id)
+                item = await cur.fetchone()
+                # pprint(item)
+
+                steps_str = item.get('steps')
+                steps_obj = json.loads(steps_str)
+                if steps_obj:
+                    steps = []
+                    for step in steps_obj:
+                        type = step.get('type')
+                        images = step.get('images')
+                        coords = step.get('coords')
+                        equipment = step.get('equipments')
+
+                        crm_images = [CrmImage(**img) for img in images]
+                        crm_equipment = [Equipment(**eq) for eq in equipment]
+                        coordinates = Coordinates(**coords) if coords else Coordinates()
+                        if coords.get('latitude'):
+                            steps.append(LineSetupStepFull(type=type,
+                                                           images=crm_images,
+                                                           coords=coordinates,
+                                                           equipments=crm_equipment))
+
+                    application_data = LineSetupApplicationData(id=item['id'],
+                                                                rowNum=item['row_num'],
+                                                                type=item['type'],
+                                                                client=await get_client_data(item['client']),
+                                                                address=item['address'],
+                                                                installer={"id": item['installer_id'],
+                                                                           "firstname": item['firstname'],
+                                                                           "middlename": item['middlename'],
+                                                                           "lastname": item['lastname']},
+                                                                comment=item['comment'],
+                                                                status=item['status'],
+                                                                installDate=item['install_date'],
+                                                                installedDate=item['installed_date'],
+                                                                poolId=item['app_pool_id'],
+                                                                # poolRowNum=item['pool_row_id'],
+                                                                hash=item['hash'],
+                                                                steps=steps)
+
+                else:
+
+                    images_str = item.get('images')
+                    equipment_str = item.get('equipments')
+
+                    equipment = []
+                    crm_images = []
+                    if images_str:
+
+                        images_obj = json.loads(images_str)
+
+                        # Parse each JSON object
+                        for img in images_obj:
+                            crm_image = CrmImage(
+                                id=img['id'],
+                                name=img['name'],
+                                mimeType=img['mimeType'],
+                                width=img['width'],
+                                height=img['height'],
+                                size=img['size'],
+                                path=img['path'],
+                                installerId=img['installerId'],
+                                applicationId=img['applicationId']
+                            )
+                            crm_images.append(crm_image)
+
+                    if equipment_str:
+
+                        equipment_obj = json.loads(equipment_str)
+                        for equipment_el in equipment_obj:
+                            equipment_model = Equipment(
+                                id=equipment_el['id'],
+                                name=equipment_el['name'],
+                                serialNumber=equipment_el['serialNumber'],
+                                comment=equipment_el['comment'],
+                                hash=equipment_el['hash'],
+                                # installerId=equipment_json['installer_id'],
+                                # applicationId=equipment_json['application_id']
+                            )
+                            equipment.append(equipment_model)
+
+                    # Create ApplicationImageData object
+                    application_data = ApplicationData(
+                        id=item['id'],
+                        rowNum=item['row_num'],
+                        type=item['type'],
+                        client=await get_client_data(item['client']),
+                        address=item['address'],
+                        installer={"id": item['installer_id'],
+                                   "firstname": item['firstname'],
+                                   "middlename": item['middlename'],
+                                   "lastname": item['lastname']},
+                        comment=item['comment'],
+                        status=item['status'],
+                        installDate=item['install_date'],
+                        installedDate=item['installed_date'],
+                        poolId=item['app_pool_id'],
+                        # poolRowNum=results['pool_row_id'],
+                        hash=item['hash'],
+                        images=crm_images,
+                        equipments=equipment
+                    )
+
+            return  application_data
 
 async def update_app(updated_app: UpdatedApplicationData):
     query = "UPDATE applications SET "
@@ -846,6 +1056,9 @@ async def update_app(updated_app: Union[NewApplication, UpdatedApplicationData, 
     if isinstance(updated_app, Union[NewApplication, UpdatedApplicationData]) and updated_app.installDate:
         updates.append("install_date = %s")
         params.append(updated_app.installDate)
+    if isinstance(updated_app, UpdatedInstallerApplicationData) and updated_app.installedDate:
+        updates.append("installed_date = %s")
+        params.append(updated_app.installedDate)
 
     if updates:
 

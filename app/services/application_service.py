@@ -8,7 +8,7 @@ from app.crud.application_crud import create_application, create_pool, get_appli
     get_applications, update_app, get_pool_installer, all_pool_apps_finished, set_pool_status, \
     update_pool_status, get_pool, get_pools, get_installer_applications, add_step, add_step_image, add_step_equipment, \
     apps_hash_exists, get_application_id_by_hash, delete_steps, update_app_status_and_installer, all_pool_apps_approved, \
-    update_pool_installer
+    update_pool_installer, get_installer_application
 from app.crud.equipment_crud import update_equipment, reset_application_equipment
 from app.crud.images_crud import update_image, reset_images
 from app.crud.installer_crud import get_all_installers_data, get_user
@@ -150,6 +150,15 @@ class AppService:
         return Application(appVer=await get_version('applications'),
                            # imageVer=await get_version('images'),
                            entity=updated_application)
+
+    async def get_installer_app(self, application_id: int):
+        application = await get_installer_application(application_id)
+        if not application:
+            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                      error_details=ErrorDetails(code=f"Application doesn't exist "
+                                                                      f"with ID {application_id}"))
+        return Application(appVer=await get_version('applications'),
+                           entity=application)
 
     async def update_installer_app(self,
                                    updated_app: UpdatedInstallerApplicationData,

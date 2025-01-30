@@ -36,7 +36,7 @@ class Configs(BaseSettings):
     # auth
     ALGORITHM: str = os.getenv("ALGORITHM", "")
     SECRET_KEY: str = os.getenv("SECRET_KEY", "")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     REFRESH_TOKEN_EXPIRE_YEARS: int = 1
 
     # CORS
