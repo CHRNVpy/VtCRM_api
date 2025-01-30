@@ -75,7 +75,7 @@ class ApplicationData(BaseModel):
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installDate: datetime.datetime
-    installedDate: Optional[datetime] = None
+    installedDate: Optional[datetime.datetime] = None
     poolId: Optional[int] = None
     poolRowNum: Optional[int] = None
     hash: str
@@ -92,7 +92,7 @@ class LineSetupApplicationData(BaseModel):
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installDate: datetime.datetime
-    installedDate: Optional[datetime] = None
+    installedDate: Optional[datetime.datetime] = None
     poolId: Optional[int] = None
     poolRowNum: Optional[int] = None
     hash: str
