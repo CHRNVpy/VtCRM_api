@@ -1278,7 +1278,7 @@ async def get_pool(pool_id: int) -> AppPoolData:
                                    entities=applications_list) if app_pool else None
 
 
-async def get_pools():
+async def get_pools(installer_name: str = None, status_filter: str = None):
     query = '''
     SELECT 
     app_pool.id AS pool_id, 
@@ -1343,13 +1343,29 @@ LEFT JOIN
     applications ON app_pool.id = applications.app_pool_id
 LEFT JOIN 
     users ON app_pool.installer_id = users.id
-GROUP BY 
-    app_pool.id, app_pool.status;'''
+'''
+
+    filters = []
+    conditions = []
+
+    if installer_name:
+        conditions.append(
+            '(LOWER(users.firstname) LIKE %s OR LOWER(users.lastname) LIKE %s OR LOWER(users.middlename) LIKE %s)')
+        filters.extend([f'%{installer_name.lower()}%'] * 3)
+
+    if status_filter:
+        conditions.append('app_pool.status = %s')
+        filters.append(status_filter)
+
+    if conditions:
+        query += ' WHERE ' + ' AND '.join(conditions)
+
+    query += ' GROUP BY app_pool.id, app_pool.status ORDER BY app_pool.id DESC;'
 
     async with (aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool):
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(query)
+                await cur.execute(query, filters)
                 results = await cur.fetchall()
                 processed_data = []
                 for app_pool in results:

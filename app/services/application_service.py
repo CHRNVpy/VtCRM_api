@@ -227,8 +227,8 @@ class AppService:
         #                    entity=updated_application)
 
 
-    async def get_pools(self, page: int, limit: int) -> AppPools:
-        pools = await get_pools()
+    async def get_pools(self, page: int, limit: int, installer_filter: str, status_filter: str) -> AppPools:
+        pools = await get_pools(installer_filter, status_filter)
         total_items = len(pools)
         paginated_items = self.paginate(pools, page, limit)
         total_pages = (total_items + limit - 1) // limit
