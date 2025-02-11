@@ -11,7 +11,7 @@ from app.crud.application_crud import create_application, create_pool, get_appli
     update_pool_installer, get_installer_application
 from app.crud.equipment_crud import update_equipment, reset_application_equipment
 from app.crud.images_crud import update_image, reset_images
-from app.crud.installer_crud import get_all_installers_data, get_user
+from app.crud.installer_crud import get_all_installers_data, get_user, get_free_installers_data
 from app.schema.application_schema import NewApplication, Application, ApplicationsList, UpdatedApplicationData, \
     UpdatedPool, AppPool, AppPools, UpdatedInstallerApplicationData
 from app.schema.error_schema import ErrorDetails
@@ -262,7 +262,7 @@ class AppService:
         if updated_pool.status == 'active':
             pool_installer_id = await get_pool_installer(pool_id)
             if not pool_installer_id:
-                installers = [user.id for user in await get_all_installers_data()]
+                installers = [user.id for user in await get_free_installers_data()]
                 pool_installer_id = random.choice(installers)
             update_app_status_tasks = [update_app_status_and_installer(app.id, 'active', pool_installer_id)
                                    for app in current_pool.entities if app.status != 'cancelled']

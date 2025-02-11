@@ -159,6 +159,38 @@ async def get_all_installers_data():
                                   hash=result[9])
                         for result in results if results]
 
+async def get_free_installers_data():
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    '''SELECT DISTINCT
+                          u.login AS login,
+                          u.password AS password,
+                          u.firstname AS firstname,
+                          u.middlename AS middlename,
+                          u.lastname AS lastname,
+                          u.phone AS phone,
+                          u.status AS status,
+                          u.role AS role,
+                          u.id AS user_id,
+                          u.hash AS hash
+                        FROM users u
+                        LEFT JOIN app_pool ap ON ap.installer_id = u.id
+                        WHERE u.role = 'installer' 
+                        AND (ap.status IN ('finished', 'cancelled', 'approved') OR ap.installer_id IS NULL)
+                        ORDER BY 
+                          CASE 
+                            WHEN u.status = 'active' THEN 0 
+                            ELSE 1 
+                          END, 
+                          u.lastname''')
+                results = await cur.fetchall()
+                return [Installer(login=result[0], password=result[1], firstname=result[2], middlename=result[3],
+                                  lastname=result[4], phone=result[5], status=result[6], role=result[7], id=result[8],
+                                  hash=result[9])
+                        for result in results if results]
+
 
 async def update_installer(updated_installer: Union[NewInstaller, UpdateInstaller], installer_id: int):
     # Base query
