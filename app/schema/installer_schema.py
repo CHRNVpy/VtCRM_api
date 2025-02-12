@@ -7,7 +7,7 @@ from app.schema.error_schema import ErrorDetails
 
 class NewInstaller(BaseModel):
     login: Optional[str] = None
-    password: str
+    password: Optional[str] = None
     firstname: str
     middlename: str
     lastname: str
@@ -15,6 +15,18 @@ class NewInstaller(BaseModel):
     status: Optional[Literal['active', 'inactive']] = 'active'
     role: str = 'installer'
     ver: int
+    hash: str
+
+class UpdateInstaller(BaseModel):
+
+    ver: int
+    firstname: Optional[str] = None
+    middlename: Optional[str] = None
+    lastname: Optional[str] = None
+    phone: Optional[str] = None
+    status: Optional[str] = None
+    login: Optional[str] = None
+    password: Optional[str] = None
     hash: str
 
 
@@ -28,18 +40,6 @@ class Installer(BaseModel):
     phone: str
     status: str
     role: str
-    hash: str
-
-
-class UpdateInstaller(BaseModel):
-
-    ver: int
-    firstname: Optional[str] = ''
-    middlename: Optional[str] = ''
-    lastname: Optional[str] = ''
-    phone: Optional[str] = ''
-    status: Optional[str] = ''
-    password: Optional[str] = ''
     hash: str
 
 

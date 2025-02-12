@@ -1,4 +1,5 @@
 import random
+import string
 
 from app.crud.admin_crud import is_admin, add_installer
 from app.crud.installer_crud import get_installer_data_by_hash, get_all_installers_data, hash_exists, \
@@ -19,6 +20,32 @@ class InstallerService:
     def generate_login(self) -> str:
         return str(random.randint(10000, 99999))
 
+    def generate_password(self, length=8):
+        """Generate a strong password similar to Google's suggested passwords."""
+
+        # Define character pools
+        uppercase = string.ascii_uppercase
+        lowercase = string.ascii_lowercase
+        digits = string.digits
+        symbols = "!@#$%^&*()-_=+"
+
+        # Ensure at least one character from each category
+        password_chars = [
+            random.choice(uppercase),
+            random.choice(lowercase),
+            random.choice(digits),
+            random.choice(symbols)
+        ]
+
+        # Fill the rest of the password length with random choices
+        all_chars = uppercase + lowercase + digits + symbols
+        password_chars += random.choices(all_chars, k=length - 4)
+
+        # Shuffle to avoid predictable patterns
+        random.shuffle(password_chars)
+
+        return "".join(password_chars)
+
     async def create_new_installer(self, new_installer: NewInstaller, current_user: str):
         if not await is_admin(current_user):
             raise VtCRM_HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
@@ -27,8 +54,13 @@ class InstallerService:
             raise VtCRM_HTTPException(status_code=status.HTTP_200_OK,
                                       error_details=ErrorDetails(code="Version mismatch"))
         if not await hash_exists(new_installer.hash):
+
             if not new_installer.login:
                 new_installer.login = self.generate_login()
+
+            if not new_installer.password:
+                new_installer.password = self.generate_password()
+
             try:
                 await add_installer(new_installer)
                 await update_version('users')

@@ -214,6 +214,9 @@ async def update_installer(updated_installer: Union[NewInstaller, UpdateInstalle
     if updated_installer.status:
         updates.append(f"status = %s")
         params.append(updated_installer.status)
+    if updated_installer.login:
+        updates.append(f"login = %s")
+        params.append(updated_installer.login)
     if updated_installer.password:
         updates.append(f"password = %s")
         params.append(updated_installer.password)
