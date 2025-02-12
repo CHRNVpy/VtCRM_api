@@ -30,7 +30,7 @@ async def get_client_data(account):
         cpa.customer_id AS account,
         c.name AS fullName,
         cc.num AS phone,
-        a.name AS address,
+        a.name AS address
     FROM 
         customer_portal_account cpa
     LEFT JOIN 

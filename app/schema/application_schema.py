@@ -9,7 +9,7 @@ from app.schema.images_schema import CrmImage
 
 
 class ClientData(BaseModel):
-    account: Optional[str] = None
+    account: Optional[int] = None
     fullName: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
