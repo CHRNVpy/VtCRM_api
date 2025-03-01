@@ -146,7 +146,7 @@ async def get_all_installers_data():
                           id AS user_id,
                           hash AS hash
                         FROM users
-                        WHERE role = 'installer'
+                        WHERE role = 'installer' AND 'status' = 'active'
                         ORDER BY 
                           CASE 
                             WHEN status = 'active' THEN 0 

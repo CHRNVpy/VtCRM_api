@@ -39,6 +39,7 @@ async def init_db():
                     "client TEXT, "
                     "address TEXT, "
                     "installer_id INT, "
+                    "problem TEXT, "
                     "comment TEXT, "
                     "status TEXT, "
                     "install_date DATETIME, "

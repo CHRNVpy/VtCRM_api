@@ -22,12 +22,14 @@ class Coordinates(BaseModel):
 
 class NewApplication(BaseModel):
     ver: int
-    type: Optional[Literal['connection', 'repair', 'line setup']]
+    type: Optional[Literal['connection', 'repair']]
     client: Optional[str] = None
     address: Optional[str] = None
+    problem: Optional[str] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = 'pending'
     installDate: datetime.datetime
+    installer: int
     poolId: Optional[int] = None
     equipments: Optional[List[int]] = None
     hash: str
@@ -37,6 +39,7 @@ class UpdatedApplicationData(BaseModel):
     ver: int
     client: Optional[str] = None
     address: Optional[str] = None
+    problem: Optional[str] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installDate: Optional[datetime.datetime] = None
@@ -72,6 +75,7 @@ class ApplicationData(BaseModel):
     client: Optional[ClientData] = None
     address: Optional[str] = None
     installer: Optional[dict] = None
+    problem: Optional[str] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installDate: datetime.datetime
@@ -89,6 +93,7 @@ class LineSetupApplicationData(BaseModel):
     client: Optional[ClientData] = None
     address: Optional[str] = None
     installer: Optional[dict] = None
+    problem: Optional[str] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installDate: datetime.datetime

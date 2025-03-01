@@ -72,6 +72,10 @@ async def create_application(new_app: NewApplication, installer_id: int) -> int:
     columns.append("install_date")
     values.append("%s")
     params.append(new_app.installDate)
+    if new_app.problem:
+        columns.append("problem")
+        values.append("%s")
+        params.append(new_app.problem)
     if new_app.comment:
         columns.append("comment")
         values.append("%s")
@@ -253,6 +257,7 @@ async def get_application(app_id: int, steps: bool = False):
                                                                                "firstname": results['firstname'],
                                                                                "middlename": results['middlename'],
                                                                                "lastname": results['lastname']},
+                                                                    problem=results['problem'],
                                                                     comment=results['comment'],
                                                                     status=results['status'],
                                                                     installDate=results['install_date'],
@@ -324,6 +329,7 @@ async def get_application(app_id: int, steps: bool = False):
                                    "firstname": results['firstname'],
                                    "middlename": results['middlename'],
                                    "lastname": results['lastname']},
+                        problem=results['problem'],
                         comment=results['comment'],
                         status=results['status'],
                         installDate=results['install_date'],
@@ -468,6 +474,7 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
                                    "firstname": item['firstname'],
                                    "middlename": item['middlename'],
                                    "lastname": item['lastname']},
+                        problem=item['problem'],
                         comment=item['comment'],
                         status=item['status'],
                         installDate=item['install_date'],
@@ -705,6 +712,7 @@ async def get_installer_applications(current_user: str):
                                                                                "firstname": item['firstname'],
                                                                                "middlename": item['middlename'],
                                                                                "lastname": item['lastname']},
+                                                                    problem=item['problem'],
                                                                     comment=item['comment'],
                                                                     status=item['status'],
                                                                     installDate=item['install_date'],
@@ -768,6 +776,7 @@ async def get_installer_applications(current_user: str):
                                        "firstname": item['firstname'],
                                        "middlename": item['middlename'],
                                        "lastname": item['lastname']},
+                            problem=item['problem'],
                             comment=item['comment'],
                             status=item['status'],
                             installDate=item['install_date'],
@@ -918,6 +927,7 @@ async def get_installer_application(application_id: int):
                                                                            "firstname": item['firstname'],
                                                                            "middlename": item['middlename'],
                                                                            "lastname": item['lastname']},
+                                                                problem=item['problem'],
                                                                 comment=item['comment'],
                                                                 status=item['status'],
                                                                 installDate=item['install_date'],
@@ -979,6 +989,7 @@ async def get_installer_application(application_id: int):
                                    "firstname": item['firstname'],
                                    "middlename": item['middlename'],
                                    "lastname": item['lastname']},
+                        problem=item['problem'],
                         comment=item['comment'],
                         status=item['status'],
                         installDate=item['install_date'],
@@ -992,46 +1003,49 @@ async def get_installer_application(application_id: int):
 
             return  application_data
 
-async def update_app(updated_app: UpdatedApplicationData):
-    query = "UPDATE applications SET "
-
-    updates = []
-    params = []
-
-    if updated_app.type:
-        updates.append("type = %s")
-        params.append(updated_app.type)
-    if updated_app.client:
-        updates.append("client = %s")
-        params.append(updated_app.client)
-    if updated_app.installerId:
-        updates.append("installer_id = %s")
-        params.append(updated_app.installerId)
-    if updated_app.comment:
-        updates.append("comment = %s")
-        params.append(updated_app.comment)
-    if updated_app.status:
-        updates.append("status = %s")
-        params.append(updated_app.status)
-    if updated_app.installDate:
-        updates.append("install_date = %s")
-        params.append(updated_app.installDate)
-    if updated_app.appPoolId:
-        updates.append("app_pool_id = %s")
-        params.append(updated_app.appPoolId)
-
-    # Join updates with commas
-    query += ", ".join(updates)
-
-    # Add the WHERE clause to specify the entity to update
-    query += " WHERE id = %s;"
-    params.append(updated_app.id)
-
-    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
-        async with pool.acquire() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(query, params)
-                await conn.commit()
+# async def update_app(updated_app: UpdatedApplicationData):
+#     query = "UPDATE applications SET "
+#
+#     updates = []
+#     params = []
+#
+#     if updated_app.type:
+#         updates.append("type = %s")
+#         params.append(updated_app.type)
+#     if updated_app.client:
+#         updates.append("client = %s")
+#         params.append(updated_app.client)
+#     if updated_app.installerId:
+#         updates.append("installer_id = %s")
+#         params.append(updated_app.installerId)
+#     if updated_app.problem:
+#         updates.append("problem = %s")
+#         params.append(updated_app.problem)
+#     if updated_app.comment:
+#         updates.append("comment = %s")
+#         params.append(updated_app.comment)
+#     if updated_app.status:
+#         updates.append("status = %s")
+#         params.append(updated_app.status)
+#     if updated_app.installDate:
+#         updates.append("install_date = %s")
+#         params.append(updated_app.installDate)
+#     if updated_app.appPoolId:
+#         updates.append("app_pool_id = %s")
+#         params.append(updated_app.appPoolId)
+#
+#     # Join updates with commas
+#     query += ", ".join(updates)
+#
+#     # Add the WHERE clause to specify the entity to update
+#     query += " WHERE id = %s;"
+#     params.append(updated_app.id)
+#
+#     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+#         async with pool.acquire() as conn:
+#             async with conn.cursor() as cur:
+#                 await cur.execute(query, params)
+#                 await conn.commit()
 
 
 async def update_app(updated_app: Union[NewApplication, UpdatedApplicationData, UpdatedInstallerApplicationData],
@@ -1044,6 +1058,9 @@ async def update_app(updated_app: Union[NewApplication, UpdatedApplicationData, 
     if isinstance(updated_app, Union[NewApplication, UpdatedApplicationData]) and updated_app.client:
         updates.append("client = %s")
         params.append(updated_app.client)
+    if isinstance(updated_app, Union[NewApplication, UpdatedApplicationData]) and updated_app.problem:
+        updates.append("problem = %s")
+        params.append(updated_app.problem)
     if isinstance(updated_app, Union[NewApplication, UpdatedApplicationData]) and updated_app.comment:
         updates.append("comment = %s")
         params.append(updated_app.comment)
@@ -1059,6 +1076,9 @@ async def update_app(updated_app: Union[NewApplication, UpdatedApplicationData, 
     if isinstance(updated_app, UpdatedInstallerApplicationData) and updated_app.installedDate:
         updates.append("installed_date = %s")
         params.append(updated_app.installedDate)
+    if updated_app.appPoolId:
+        updates.append("app_pool_id = %s")
+        params.append(updated_app.appPoolId)
 
     if updates:
 
