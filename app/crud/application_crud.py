@@ -22,12 +22,12 @@ async def apps_hash_exists(hash: str):
                 return result is not None
 
 
-async def create_pool(installer_id: int | None) -> int:
-    query = "INSERT INTO app_pool (status, installer_id) VALUES (%s, %s)"
+async def create_pool() -> int:
+    query = "INSERT INTO app_pool (status) VALUES (%s)"
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(query, ('pending', installer_id))
+                await cur.execute(query, ('pending', ))
                 await conn.commit()
                 pool_id = cur.lastrowid
                 return pool_id
@@ -51,7 +51,7 @@ async def update_pool_installer(pool_id: int, installer_id: int):
                 await conn.commit()
 
 
-async def create_application(new_app: NewApplication, installer_id: int) -> int:
+async def create_application(new_app: NewApplication) -> int:
     query = 'INSERT INTO applications ('
     columns = []
     values = []
@@ -66,12 +66,15 @@ async def create_application(new_app: NewApplication, installer_id: int) -> int:
     columns.append("address")
     values.append("%s")
     params.append(new_app.address)
-    columns.append("installer_id")
-    values.append("%s")
-    params.append(installer_id)
+    # columns.append("installer_id")
+    # values.append("%s")
+    # params.append(installer_id)
     columns.append("install_date")
     values.append("%s")
     params.append(new_app.installDate)
+    columns.append("time_slot")
+    values.append("%s")
+    params.append(new_app.timeSlot)
     if new_app.problem:
         columns.append("problem")
         values.append("%s")
@@ -225,6 +228,7 @@ async def get_application(app_id: int, steps: bool = False):
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(query, app_id)
                 results = await cur.fetchone()
+                print(results)
                 if not results.get('id'):
                     return None
 
@@ -261,6 +265,7 @@ async def get_application(app_id: int, steps: bool = False):
                                                                     comment=results['comment'],
                                                                     status=results['status'],
                                                                     installDate=results['install_date'],
+                                                                    timeSlot=results['time_slot'],
                                                                     installedDate=results['installed_date'],
                                                                     poolId=results['app_pool_id'],
                                                                     poolRowNum=results['pool_row_id'],
@@ -333,6 +338,7 @@ async def get_application(app_id: int, steps: bool = False):
                         comment=results['comment'],
                         status=results['status'],
                         installDate=results['install_date'],
+                        timeSlot=results['time_slot'],
                         installedDate=results['installed_date'],
                         poolId=results['app_pool_id'],
                         poolRowNum=results['pool_row_id'],
@@ -478,6 +484,7 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
                         comment=item['comment'],
                         status=item['status'],
                         installDate=item['install_date'],
+                        timeSlot=item['time_slot'],
                         installedDate=item['installed_date'],
                         poolId=item['app_pool_id'],
                         hash=item['hash'],
@@ -716,6 +723,7 @@ async def get_installer_applications(current_user: str):
                                                                     comment=item['comment'],
                                                                     status=item['status'],
                                                                     installDate=item['install_date'],
+                                                                    timeSlot=item['time_slot'],
                                                                     installedDate=item['installed_date'],
                                                                     poolId=item['app_pool_id'],
                                                                     # poolRowNum=item['pool_row_id'],
@@ -780,6 +788,7 @@ async def get_installer_applications(current_user: str):
                             comment=item['comment'],
                             status=item['status'],
                             installDate=item['install_date'],
+                            timeSlot=item['time_slot'],
                             installedDate=item['installed_date'],
                             poolId=item['app_pool_id'],
                             # poolRowNum=results['pool_row_id'],
@@ -931,6 +940,7 @@ async def get_installer_application(application_id: int):
                                                                 comment=item['comment'],
                                                                 status=item['status'],
                                                                 installDate=item['install_date'],
+                                                                timeSlot=item['time_slot'],
                                                                 installedDate=item['installed_date'],
                                                                 poolId=item['app_pool_id'],
                                                                 # poolRowNum=item['pool_row_id'],
@@ -993,6 +1003,7 @@ async def get_installer_application(application_id: int):
                         comment=item['comment'],
                         status=item['status'],
                         installDate=item['install_date'],
+                        timeSlot=item['time_slot'],
                         installedDate=item['installed_date'],
                         poolId=item['app_pool_id'],
                         # poolRowNum=results['pool_row_id'],
@@ -1073,6 +1084,9 @@ async def update_app(updated_app: Union[NewApplication, UpdatedApplicationData, 
     if isinstance(updated_app, Union[NewApplication, UpdatedApplicationData]) and updated_app.installDate:
         updates.append("install_date = %s")
         params.append(updated_app.installDate)
+    if isinstance(updated_app, Union[NewApplication, UpdatedApplicationData]) and updated_app.timeSlot:
+        updates.append("time_slot = %s")
+        params.append(updated_app.timeSlot)
     if isinstance(updated_app, UpdatedInstallerApplicationData) and updated_app.installedDate:
         updates.append("installed_date = %s")
         params.append(updated_app.installedDate)

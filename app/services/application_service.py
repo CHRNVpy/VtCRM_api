@@ -58,16 +58,16 @@ class AppService:
                                    imageVer=await get_version('images'), entity=app)
             else:
                 if not new_app.poolId:
-                    installer = None
-                    if new_app.status == 'active':
-                        installer = new_app.installer
-                    pool_id = await create_pool(installer)
+                    # installer = new_app.installerId
+                    # if new_app.status == 'active':
+                    #     installer = new_app.installerId
+                    pool_id = await create_pool()
                     if new_app.status == 'active':
                         await  update_pool_status('active', pool_id)
                     new_app.poolId = pool_id
 
-                installer_id = await get_pool_installer(new_app.poolId)
-                created_app_id = await create_application(new_app, installer_id)
+                # installer_id = await get_pool_installer(new_app.poolId)
+                created_app_id = await create_application(new_app)
                 await update_version('applications')
                 if new_app.equipments:
                     await asyncio.gather(*[update_equipment({"applicationId": created_app_id}, eq)
@@ -260,10 +260,10 @@ class AppService:
                                       error_details=ErrorDetails(
                                           code=f"Pool doesn't exist with ID {updated_pool.id}"))
         if updated_pool.status == 'active':
-            pool_installer_id = await get_pool_installer(pool_id)
-            if not pool_installer_id:
-                installers = [user.id for user in await get_free_installers_data()]
-                pool_installer_id = random.choice(installers)
+            pool_installer_id = updated_pool.installerId
+            # if not pool_installer_id:
+            #     installers = [user.id for user in await get_free_installers_data()]
+            #     pool_installer_id = random.choice(installers)
             update_app_status_tasks = [update_app_status_and_installer(app.id, 'active', pool_installer_id)
                                    for app in current_pool.entities if app.status != 'cancelled']
             await asyncio.gather(*update_app_status_tasks)

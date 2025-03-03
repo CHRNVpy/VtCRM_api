@@ -1,7 +1,7 @@
 import datetime
 from typing import Optional, Union, List, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from app.schema.equipment_schema import Equipment
 from app.schema.error_schema import ErrorDetails
@@ -28,8 +28,9 @@ class NewApplication(BaseModel):
     problem: Optional[str] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = 'pending'
-    installDate: datetime.datetime
-    installer: int
+    installDate: datetime.date
+    timeSlot: str
+    # installerId: int
     poolId: Optional[int] = None
     equipments: Optional[List[int]] = None
     hash: str
@@ -42,7 +43,9 @@ class UpdatedApplicationData(BaseModel):
     problem: Optional[str] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
-    installDate: Optional[datetime.datetime] = None
+    installDate: Optional[datetime.date] = None
+    timeSlot: Optional[str] = None
+    # installerId: Optional[int] = None
     equipments: Optional[List[int]] = None
 
 
@@ -63,7 +66,8 @@ class UpdatedInstallerApplicationData(BaseModel):
 
     ver: int
     status: Optional[Literal['finished']] = None
-    installedDate: Optional[datetime.datetime] = None
+    installedDate: Optional[datetime.date] = None
+    timeSlot: Optional[str] = None
     images: Optional[List[int]] = None
     steps: Optional[List[LineSetupStep]] = None
 
@@ -78,7 +82,8 @@ class ApplicationData(BaseModel):
     problem: Optional[str] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
-    installDate: datetime.datetime
+    installDate: datetime.date
+    timeSlot: str
     installedDate: Optional[datetime.datetime] = None
     poolId: Optional[int] = None
     poolRowNum: Optional[int] = None
@@ -96,7 +101,8 @@ class LineSetupApplicationData(BaseModel):
     problem: Optional[str] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
-    installDate: datetime.datetime
+    installDate: datetime.date
+    timeSlot: str
     installedDate: Optional[datetime.datetime] = None
     poolId: Optional[int] = None
     poolRowNum: Optional[int] = None
@@ -149,6 +155,13 @@ class AppPoolData(BaseModel):
 class UpdatedPool(BaseModel):
     ver: int
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']]
+    installerId: Optional[int] = None
+
+    @model_validator(mode='before')
+    def check_installer_id(cls, values):
+        if values.get("status") == "active" and values.get("installerId") is None:
+            raise ValueError("installerId is required when status is 'active'")
+        return values
 
 
 class AppPool(BaseModel):
