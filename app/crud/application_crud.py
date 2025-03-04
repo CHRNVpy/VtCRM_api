@@ -1332,6 +1332,7 @@ async def get_pools(installer_name: str = None, status_filter: str = None):
             'status', applications.status,
             'address', applications.address,
             'installDate', applications.install_date,
+            'timeSlot', applications.time_slot,
             'hash', applications.hash,
             'poolId', applications.app_pool_id,
             'images', COALESCE((
@@ -1456,6 +1457,7 @@ LEFT JOIN
                                        'middlename': installer_middlename,
                                        'lastname': installer_lastname},
                             installDate=app['installDate'],
+                            timeSlot=app['timeSlot'],
                             hash=app['hash'],
                             poolId=app['poolId'],
                             images=crm_images,
