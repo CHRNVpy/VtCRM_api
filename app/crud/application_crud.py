@@ -1192,6 +1192,7 @@ async def get_pool(pool_id: int) -> AppPoolData:
                     'status', applications.status,
                     'address', applications.address,
                     'installDate', applications.install_date,
+                    'timeSlot', applications.time_slot,
                     'hash', applications.hash,
                     'poolId', applications.app_pool_id,
                     'images', COALESCE((
@@ -1302,6 +1303,7 @@ async def get_pool(pool_id: int) -> AppPoolData:
                                    'middlename': installer_middlename,
                                    'lastname': installer_lastname},
                         installDate=app['installDate'],
+                        timeSlot=app['timeSlot'],
                         hash=app['hash'],
                         poolId=app['poolId'],
                         images=crm_images,
