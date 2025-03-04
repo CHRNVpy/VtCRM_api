@@ -228,7 +228,6 @@ async def get_application(app_id: int, steps: bool = False):
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(query, app_id)
                 results = await cur.fetchone()
-                print(results)
                 if not results.get('id'):
                     return None
 
@@ -1090,7 +1089,7 @@ async def update_app(updated_app: Union[NewApplication, UpdatedApplicationData, 
     if isinstance(updated_app, UpdatedInstallerApplicationData) and updated_app.installedDate:
         updates.append("installed_date = %s")
         params.append(updated_app.installedDate)
-    if updated_app.appPoolId:
+    if isinstance(updated_app, NewApplication) and updated_app.appPoolId:
         updates.append("app_pool_id = %s")
         params.append(updated_app.appPoolId)
 
