@@ -97,10 +97,10 @@ async def init_db():
                 await cur.execute(
                     "CREATE TABLE IF NOT EXISTS versions ("
                     "id INT AUTO_INCREMENT PRIMARY KEY, "
-                    "users INT, "
-                    "applications INT, "
-                    "images INT, "
-                    "pools INT, "
-                    "equipment INT)"
+                    "users INT DEFAULT 0, "
+                    "applications INT DEFAULT 0, "
+                    "images INT DEFAULT 0, "
+                    "pools INT DEFAULT 0, "
+                    "equipment INT DEFAULT 0)"
                 )
 
