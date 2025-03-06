@@ -73,7 +73,7 @@ class UpdatedInstallerApplicationData(BaseModel):
 
 
 class ApplicationData(BaseModel):
-    id: int = None
+    id: Optional[int] = None
     rowNum: Optional[int] = None
     type: Optional[Literal['connection', 'repair', 'line setup']] = None
     client: Optional[ClientData] = None
@@ -82,12 +82,12 @@ class ApplicationData(BaseModel):
     problem: Optional[str] = None
     comment: Optional[str] = None
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
-    installDate: datetime.date = None
-    timeSlot: str = None
+    installDate: Optional[datetime.date] = None
+    timeSlot: Optional[str] = None
     installedDate: Optional[datetime.datetime] = None
     poolId: Optional[int] = None
     poolRowNum: Optional[int] = None
-    hash: str = None
+    hash: Optional[str] = None
     images: Optional[List[CrmImage]] = []
     equipments: Optional[List[Equipment]] = []
 
