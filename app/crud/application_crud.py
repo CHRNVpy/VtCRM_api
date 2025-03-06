@@ -1448,7 +1448,6 @@ LEFT JOIN
                             id=app['id'],
                             type=app['type'],
                             client=await get_client_data(app['client']),
-                            installerId=app['installerId'],
                             comment=app['comment'],
                             status=app['status'],
                             address=app['address'],
