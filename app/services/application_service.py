@@ -152,7 +152,7 @@ class AppService:
                            entity=updated_application)
 
     async def get_installer_app(self, application_id: int):
-        application = await get_installer_application(application_id)
+        application = await get_application(application_id, steps=True)
         if not application:
             raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(code=f"Application doesn't exist "
