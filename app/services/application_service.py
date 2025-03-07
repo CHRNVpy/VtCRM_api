@@ -37,13 +37,15 @@ class AppService:
             await set_pool_status(app_id, 'approved')
 
     async def create_app(self, new_app: NewApplication, current_user: str) -> Application:
+
+        if not await is_admin(current_user):
+            raise VtCRM_HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                      error_details=ErrorDetails(code="You're not an admin"))
+        if new_app.ver != await get_version('applications'):
+            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                      error_details=ErrorDetails(code="Version mismatch"))
+
         try:
-            if not await is_admin(current_user):
-                raise VtCRM_HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                          error_details=ErrorDetails(code="You're not an admin"))
-            if new_app.ver != await get_version('applications'):
-                raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                          error_details=ErrorDetails(code="Version mismatch"))
             if await apps_hash_exists(new_app.hash):
                 application_id = await get_application_id_by_hash(new_app.hash)
                 await update_app(new_app, application_id)
