@@ -23,7 +23,7 @@ class Coordinates(BaseModel):
 class NewApplication(BaseModel):
     ver: int
     type: Optional[Literal['connection', 'repair']]
-    client: Optional[str] = None
+    client: Optional[int] = None
     address: Optional[str] = None
     problem: Optional[str] = None
     comment: Optional[str] = None
@@ -38,7 +38,7 @@ class NewApplication(BaseModel):
 
 class UpdatedApplicationData(BaseModel):
     ver: int
-    client: Optional[str] = None
+    client: Optional[int] = None
     address: Optional[str] = None
     problem: Optional[str] = None
     comment: Optional[str] = None
