@@ -41,9 +41,9 @@ class AppService:
         if not await is_admin(current_user):
             raise VtCRM_HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                       error_details=ErrorDetails(code="You're not an admin"))
-        if new_app.ver != await get_version('applications'):
-            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                      error_details=ErrorDetails(code="Version mismatch"))
+        # if new_app.ver != await get_version('applications'):
+        #     raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+        #                               error_details=ErrorDetails(code="Version mismatch"))
 
         try:
             if await apps_hash_exists(new_app.hash):
@@ -125,9 +125,9 @@ class AppService:
                                entity=await get_application(app_id))
 
     async def update_app(self, updated_app: UpdatedApplicationData, application_id: int):
-        if updated_app.ver != await get_version('applications'):
-            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                      error_details=ErrorDetails(code="Version mismatch"))
+        # if updated_app.ver != await get_version('applications'):
+        #     raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+        #                               error_details=ErrorDetails(code="Version mismatch"))
         application = await get_application(application_id)
         if not application:
             raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
@@ -166,9 +166,9 @@ class AppService:
                                    updated_app: UpdatedInstallerApplicationData,
                                    current_user: str,
                                    application_id: int):
-        if updated_app.ver != await get_version('applications'):
-            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                      error_details=ErrorDetails(code="Version mismatch"))
+        # if updated_app.ver != await get_version('applications'):
+        #     raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+        #                               error_details=ErrorDetails(code="Version mismatch"))
 
         application = await get_application(application_id)
         if not application:
@@ -252,9 +252,9 @@ class AppService:
                         entity=pool)
 
     async def update_pool(self, updated_pool: UpdatedPool, pool_id: int):
-        if updated_pool.ver != await get_version('applications'):
-            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                      error_details=ErrorDetails(code="Version mismatch"))
+        # if updated_pool.ver != await get_version('applications'):
+        #     raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+        #                               error_details=ErrorDetails(code="Version mismatch"))
         try:
             current_pool = await get_pool(pool_id)
         except Exception:
