@@ -616,7 +616,9 @@ async def get_installer_applications(current_user: str):
                 users u ON a.installer_id = u.id
             WHERE a.installer_id = (SELECT id FROM users WHERE login = %s)
             GROUP BY a.id
-            ORDER BY a.install_date DESC;'''
+            ORDER BY 
+                CASE WHEN a.status = 'active' THEN 0 ELSE 1 END,
+                a.install_date DESC;'''
 
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
