@@ -107,6 +107,7 @@ class LineSetupApplicationData(BaseModel):
     poolRowNum: Optional[int] = None
     hash: str
     steps: Optional[List[LineSetupStepFull]] = []
+    equipments: Optional[List[Equipment]] = []
 
 
 class Application(BaseModel):

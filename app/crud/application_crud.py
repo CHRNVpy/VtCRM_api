@@ -233,9 +233,13 @@ async def get_application(app_id: int, steps: bool = False):
 
                 if steps:
                     steps_str = results.get('steps')
+                    equipment_str = results.get('equipment')
+                    steps = []
+                    equipment = []
+
                     if steps_str:
+
                         steps_obj = json.loads(steps_str)
-                        steps = []
                         for step in steps_obj:
                             type = step.get('type')
                             images = step.get('images')
@@ -251,26 +255,46 @@ async def get_application(app_id: int, steps: bool = False):
                                                                coords=coordinates,
                                                                equipments=crm_equipment))
 
-                        application_data = LineSetupApplicationData(id=results['id'],
-                                                                    rowNum=results['row_num'],
-                                                                    type=results['type'],
-                                                                    client=await get_client_data(results['client']),
-                                                                    address=results['address'],
-                                                                    installer={"id": results['installer_id'],
-                                                                               "firstname": results['firstname'],
-                                                                               "middlename": results['middlename'],
-                                                                               "lastname": results['lastname']},
-                                                                    problem=results['problem'],
-                                                                    comment=results['comment'],
-                                                                    status=results['status'],
-                                                                    installDate=results['install_date'],
-                                                                    timeSlot=results['time_slot'],
-                                                                    installedDate=results['installed_date'],
-                                                                    poolId=results['app_pool_id'],
-                                                                    poolRowNum=results['pool_row_id'],
-                                                                    hash=results['hash'],
-                                                                    steps=steps)
-                        return application_data
+                    if equipment_str:
+                        equipment_list = equipment_str.split('},{')
+                        # Properly format each JSON object
+                        equipment_list = [item.strip('{}') for item in equipment_list]
+                        equipment_list = ['{' + item + '}' for item in equipment_list]
+                        # Parse each JSON object
+                        for equipment_el in equipment_list:
+                            equipment_json = json.loads(equipment_el)
+                            equipment_model = Equipment(
+                                id=equipment_json['id'],
+                                name=equipment_json['name'],
+                                serialNumber=equipment_json['serial'],
+                                comment=equipment_json['comment'],
+                                hash=equipment_json['hash']
+                                # installerId=img['installer_id'],
+                                # applicationId=img['application_id']
+                            )
+                            equipment.append(equipment_model)
+
+                    application_data = LineSetupApplicationData(id=results['id'],
+                                                                rowNum=results['row_num'],
+                                                                type=results['type'],
+                                                                client=await get_client_data(results['client']),
+                                                                address=results['address'],
+                                                                installer={"id": results['installer_id'],
+                                                                           "firstname": results['firstname'],
+                                                                           "middlename": results['middlename'],
+                                                                           "lastname": results['lastname']},
+                                                                problem=results['problem'],
+                                                                comment=results['comment'],
+                                                                status=results['status'],
+                                                                installDate=results['install_date'],
+                                                                timeSlot=results['time_slot'],
+                                                                installedDate=results['installed_date'],
+                                                                poolId=results['app_pool_id'],
+                                                                poolRowNum=results['pool_row_id'],
+                                                                hash=results['hash'],
+                                                                steps=steps,
+                                                                equipments=equipment)
+                    return application_data
 
 
                 else:
