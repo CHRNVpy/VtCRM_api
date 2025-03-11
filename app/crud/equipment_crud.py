@@ -18,13 +18,14 @@ async def equipment_hash_exists(hash: str):
 
 async def get_all_equipment(name_filter: str = None,
                             status_filter: str = None,
-                            installer_filter: int = None):
+                            installer_filter: str = None):
     query = '''SELECT * FROM (
                         SELECT *,
                                ROW_NUMBER() OVER (ORDER BY id) AS row_num
                         FROM equipment
                     ) AS numbered_rows
                 LEFT JOIN applications a ON numbered_rows.application_id = a.id
+                LEFT JOIN users u ON numbered_rows.installer_id = u.id
                 WHERE 1=1
                 '''
     filters = []
@@ -42,9 +43,9 @@ async def get_all_equipment(name_filter: str = None,
     if status_filter and status_filter == 'client':
         query += ' AND numbered_rows.installer_id IS NULL AND a.status = "finished"'
 
-    if installer_filter and installer_filter != 0:
-        query += ' AND numbered_rows.installer_id = %s'
-        filters.append(installer_filter)
+    if installer_filter and installer_filter != "":
+        query += ' AND u.firstname LIKE %s OR u.lastname LIKE %s'
+        filters.extend([f'%{installer_filter.lower()}%', f'%{installer_filter.lower()}%'])
 
     query += ' ORDER BY numbered_rows.id'
 
