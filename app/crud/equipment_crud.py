@@ -24,7 +24,9 @@ async def get_all_equipment(name_filter: str = None,
                                ROW_NUMBER() OVER (ORDER BY id) AS row_num
                         FROM equipment
                     ) AS numbered_rows
-                     WHERE 1=1'''
+                LEFT JOIN applications a ON numbered_rows.application_id = a.id
+                WHERE 1=1
+                '''
     filters = []
 
     if name_filter:
@@ -32,16 +34,19 @@ async def get_all_equipment(name_filter: str = None,
         filters.extend([f'%{name_filter}%', f'%{name_filter}%', f'%{name_filter}%'])
 
     if status_filter and status_filter == 'base':
-        query += ' AND installer_id IS NULL AND application_id IS NULL'
+        query += ' AND numbered_rows.installer_id IS NULL AND numbered_rows.application_id IS NULL'
 
     if status_filter and status_filter == 'installer':
-        query += ' AND installer_id IS NOT NULL'
+        query += ' AND numbered_rows.installer_id IS NOT NULL'
+
+    if status_filter and status_filter == 'client':
+        query += ' AND numbered_rows.installer_id IS NULL AND a.status = "finished"'
 
     if installer_filter and installer_filter != 0:
-        query += ' AND installer_id = %s'
+        query += ' AND numbered_rows.installer_id = %s'
         filters.append(installer_filter)
 
-    query += ' ORDER BY id'
+    query += ' ORDER BY numbered_rows.id'
 
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
@@ -167,6 +172,16 @@ async def update_equipment(equipment: Union[NewEquipment, UpdatedEquipment, dict
 async def reset_application_equipment(application_id: int):
 
     query = 'UPDATE equipment SET application_id = NULL, installer_id = NULL WHERE application_id = %s'
+
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(query, (application_id,))
+                await conn.commit()
+
+async def reset_installer_equipment(application_id: int):
+
+    query = 'UPDATE equipment SET installer_id = NULL WHERE application_id = %s'
 
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:

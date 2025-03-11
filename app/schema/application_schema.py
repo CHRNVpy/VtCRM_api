@@ -67,7 +67,6 @@ class UpdatedInstallerApplicationData(BaseModel):
     ver: int
     status: Optional[Literal['finished']] = None
     installedDate: Optional[datetime.date] = None
-    timeSlot: Optional[str] = None
     images: Optional[List[int]] = None
     steps: Optional[List[LineSetupStep]] = None
 

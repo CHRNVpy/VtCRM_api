@@ -9,7 +9,7 @@ from app.crud.application_crud import create_application, create_pool, get_appli
     update_pool_status, get_pool, get_pools, get_installer_applications, add_step, add_step_image, add_step_equipment, \
     apps_hash_exists, get_application_id_by_hash, delete_steps, update_app_status_and_installer, all_pool_apps_approved, \
     update_pool_installer, get_installer_application
-from app.crud.equipment_crud import update_equipment, reset_application_equipment
+from app.crud.equipment_crud import update_equipment, reset_application_equipment, reset_installer_equipment
 from app.crud.images_crud import update_image, reset_images
 from app.crud.installer_crud import get_all_installers_data, get_user, get_free_installers_data
 from app.schema.application_schema import NewApplication, Application, ApplicationsList, UpdatedApplicationData, \
@@ -191,6 +191,7 @@ class AppService:
 
         await update_version('applications')
         if updated_app.status == 'finished':
+            await reset_installer_equipment(application_id)
             await self.finish_pool(application_id)
         if updated_app.status == 'approved':
             await self.approve_pool(application_id)
