@@ -31,7 +31,7 @@ async def get_all_equipment(name_filter: str = None,
     filters = []
 
     if name_filter:
-        query += ' AND (name LIKE %s OR serial LIKE %s OR comment LIKE %s)'
+        query += ' AND (numbered_rows.name LIKE %s OR numbered_rows.serial LIKE %s OR numbered_rows.comment LIKE %s)'
         filters.extend([f'%{name_filter}%', f'%{name_filter}%', f'%{name_filter}%'])
 
     if status_filter and status_filter == 'base':
