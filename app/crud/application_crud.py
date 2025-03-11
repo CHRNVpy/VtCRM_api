@@ -159,9 +159,8 @@ async def get_application(app_id: int, steps: bool = False):
                 WHERE a.id = %s
                 GROUP BY a.id'''
 
-    steps_query = '''SELECT
+    steps_query = '''SELECT 
                     a.*,
-                    u.*,
                     ap_with_row.row_id AS pool_row_id,
                     IFNULL(JSON_ARRAYAGG(
                         JSON_OBJECT(
@@ -204,22 +203,36 @@ async def get_application(app_id: int, steps: bool = False):
                                 WHERE eq.application_id = a.id AND eq.step_id = c.id
                             )
                         )
-                    ), JSON_ARRAY()) AS steps
+                    ), JSON_ARRAY()) AS steps,
+                    (SELECT JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'id', e.id,
+                            'name', e.name,
+                            'serialNumber', e.serial,
+                            'status', e.status,
+                            'comment', e.comment,
+                            'applicationId', e.application_id,
+                            'installerId', e.installer_id,
+                            'hash', e.hash
+                        )
+                    ) FROM equipment e WHERE e.application_id = a.id) AS equipment,
+                    u.*
                 FROM (
-                        SELECT *,
-                               ROW_NUMBER() OVER (ORDER BY id) AS row_num
-                        FROM applications
-                    ) AS a
+                    SELECT *,
+                    ROW_NUMBER() OVER (ORDER BY id) AS row_num
+                    FROM applications
+                ) AS a
                 LEFT JOIN
                     coordinates c ON c.application_id = a.id
                 LEFT JOIN
                     users u ON a.installer_id = u.id
-                LEFT JOIN 
-                (SELECT ap.*, 
-                        ROW_NUMBER() OVER (ORDER BY ap.id) AS row_id
-                 FROM app_pool ap) ap_with_row ON a.app_pool_id = ap_with_row.id
+                LEFT JOIN
+                    (SELECT ap.*,
+                     ROW_NUMBER() OVER (ORDER BY ap.id) AS row_id
+                     FROM app_pool ap) ap_with_row ON a.app_pool_id = ap_with_row.id
                 WHERE
-                    a.id = %s'''
+                    a.id = %s
+                GROUP BY a.id;'''
 
     query = steps_query if steps else base_query
 
@@ -241,7 +254,7 @@ async def get_application(app_id: int, steps: bool = False):
 
                         steps_obj = json.loads(steps_str)
                         for step in steps_obj:
-                            type = step.get('type')
+                            step_type = step.get('type')
                             images = step.get('images')
                             coords = step.get('coords')
                             equipment = step.get('equipments')
@@ -250,25 +263,24 @@ async def get_application(app_id: int, steps: bool = False):
                             crm_equipment = [Equipment(**eq) for eq in equipment]
                             coordinates = Coordinates(**coords) if coords else Coordinates()
                             if coords.get('latitude'):
-                                steps.append(LineSetupStepFull(type=type,
+                                steps.append(LineSetupStepFull(type=step_type,
                                                                images=crm_images,
                                                                coords=coordinates,
                                                                equipments=crm_equipment))
 
                     if equipment_str:
-                        equipment_list = equipment_str.split('},{')
-                        # Properly format each JSON object
-                        equipment_list = [item.strip('{}') for item in equipment_list]
-                        equipment_list = ['{' + item + '}' for item in equipment_list]
+
+                        equipment_list = json.loads(equipment_str)
+
                         # Parse each JSON object
                         for equipment_el in equipment_list:
-                            equipment_json = json.loads(equipment_el)
+
                             equipment_model = Equipment(
-                                id=equipment_json['id'],
-                                name=equipment_json['name'],
-                                serialNumber=equipment_json['serial'],
-                                comment=equipment_json['comment'],
-                                hash=equipment_json['hash']
+                                id=equipment_el['id'],
+                                name=equipment_el['name'],
+                                serialNumber=equipment_el['serialNumber'],
+                                comment=equipment_el['comment'],
+                                hash=equipment_el['hash']
                                 # installerId=img['installer_id'],
                                 # applicationId=img['application_id']
                             )
