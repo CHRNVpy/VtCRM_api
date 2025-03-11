@@ -9,7 +9,8 @@ from app.crud.application_crud import create_application, create_pool, get_appli
     update_pool_status, get_pool, get_pools, get_installer_applications, add_step, add_step_image, add_step_equipment, \
     apps_hash_exists, get_application_id_by_hash, delete_steps, update_app_status_and_installer, all_pool_apps_approved, \
     update_pool_installer, get_installer_application
-from app.crud.equipment_crud import update_equipment, reset_application_equipment, reset_installer_equipment
+from app.crud.equipment_crud import update_equipment, reset_application_equipment, reset_installer_equipment, \
+    set_equipment_installer
 from app.crud.images_crud import update_image, reset_images
 from app.crud.installer_crud import get_all_installers_data, get_user, get_free_installers_data
 from app.schema.application_schema import NewApplication, Application, ApplicationsList, UpdatedApplicationData, \
@@ -271,6 +272,9 @@ class AppService:
                                    for app in current_pool.entities if app.status != 'cancelled']
             await asyncio.gather(*update_app_status_tasks)
             await update_pool_installer(pool_id, pool_installer_id)
+
+            await asyncio.gather(*[set_equipment_installer(app.id, pool_installer_id) for app in current_pool.entities])
+
         await update_pool_status(updated_pool.status, pool_id)
         await update_version('applications')
         updated_pool = await get_pool(pool_id)
