@@ -1,7 +1,7 @@
 import datetime
 from typing import Optional, Union, List, Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, field_validator
 
 from app.schema.equipment_schema import Equipment
 from app.schema.error_schema import ErrorDetails
@@ -34,6 +34,15 @@ class NewApplication(BaseModel):
     poolId: Optional[int] = None
     equipments: Optional[List[int]] = None
     hash: str
+
+    @field_validator('client', mode="before")
+    def validate_client(cls, value):
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return None
 
 
 class UpdatedApplicationData(BaseModel):
