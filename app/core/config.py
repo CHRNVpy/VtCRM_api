@@ -72,6 +72,20 @@ class Configs(BaseSettings):
         'host': EXT_DB_HOST,
         'port': int(EXT_DB_PORT),
     }
+
+    BGBILLING_DB_NAME: str = os.getenv("BGBILLING_DB_NAME")
+    BGBILLING_DB_USER: str = os.getenv("BGBILLING_DB_USER")
+    BGBILLING_DB_PASSWORD: str = os.getenv("BGBILLING_DB_PASS")
+    BGBILLING_DB_HOST: str = os.getenv("BGBILLING_DB_HOST")
+    BGBILLING_DB_PORT: int = os.getenv("BGBILLING_DB_PORT", "3306")
+
+    BGBILLING_DB_CONFIG: dict = {
+        'user': BGBILLING_DB_USER,
+        'password': BGBILLING_DB_PASSWORD,
+        'db': BGBILLING_DB_NAME,
+        'host': BGBILLING_DB_HOST,
+        'port': int(BGBILLING_DB_PORT),
+    }
 #
 #     # find query
 #     PAGE = 1
