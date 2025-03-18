@@ -1103,7 +1103,8 @@ async def update_app(updated_app: Union[NewApplication, UpdatedApplicationData, 
     updates = []
     params = []
 
-    if isinstance(updated_app, Union[NewApplication, UpdatedApplicationData]) and updated_app.client:
+    if (isinstance(updated_app, Union[NewApplication, UpdatedApplicationData, UpdatedInstallerApplicationData])
+            and updated_app.client):
         updates.append("client = %s")
         params.append(updated_app.client)
     if isinstance(updated_app, Union[NewApplication, UpdatedApplicationData]) and updated_app.problem:
