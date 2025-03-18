@@ -61,10 +61,13 @@ async def get_client_data_bgbilling(account):
 
 async def get_client_data(account):
 
-    data = await get_client_data_felix(account)
+    match len(str(account)):
 
-    if not data.account:
-
-        data = await get_client_data_bgbilling(account)
+        case 4:
+            data = await get_client_data_felix(account)
+        case 5:
+            data = await get_client_data_bgbilling(account)
+        case _:
+            data = ClientData()
 
     return data
