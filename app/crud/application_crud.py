@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import json
 from pprint import pprint
 from typing import Optional, List, Union
@@ -241,7 +242,7 @@ async def get_application(app_id: int, steps: bool = False):
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(query, app_id)
                 results = await cur.fetchone()
-                if not results.get('id'):
+                if not results:
                     return None
 
                 if steps:
@@ -301,6 +302,7 @@ async def get_application(app_id: int, steps: bool = False):
                                                                 installDate=results['install_date'],
                                                                 timeSlot=results['time_slot'],
                                                                 installedDate=results['installed_date'],
+                                                                installer_comment=results['installer_comment'],
                                                                 poolId=results['app_pool_id'],
                                                                 poolRowNum=results['pool_row_id'],
                                                                 hash=results['hash'],
@@ -375,6 +377,7 @@ async def get_application(app_id: int, steps: bool = False):
                         installDate=results['install_date'],
                         timeSlot=results['time_slot'],
                         installedDate=results['installed_date'],
+                        installer_comment=results['installer_comment'],
                         poolId=results['app_pool_id'],
                         poolRowNum=results['pool_row_id'],
                         hash=results['hash'],
@@ -521,6 +524,7 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
                         installDate=item['install_date'],
                         timeSlot=item['time_slot'],
                         installedDate=item['installed_date'],
+                        installer_comment=item['installer_comment'],
                         poolId=item['app_pool_id'],
                         hash=item['hash'],
                         images=crm_images,
@@ -760,6 +764,7 @@ async def get_installer_applications(current_user: str):
                                                                     installDate=item['install_date'],
                                                                     timeSlot=item['time_slot'],
                                                                     installedDate=item['installed_date'],
+                                                                    installer_comment=item['installer_comment'],
                                                                     poolId=item['app_pool_id'],
                                                                     # poolRowNum=item['pool_row_id'],
                                                                     hash=item['hash'],
@@ -825,6 +830,7 @@ async def get_installer_applications(current_user: str):
                             installDate=item['install_date'],
                             timeSlot=item['time_slot'],
                             installedDate=item['installed_date'],
+                            installer_comment=item['installer_comment'],
                             poolId=item['app_pool_id'],
                             # poolRowNum=results['pool_row_id'],
                             hash=item['hash'],
@@ -977,6 +983,7 @@ async def get_installer_application(application_id: int):
                                                                 installDate=item['install_date'],
                                                                 timeSlot=item['time_slot'],
                                                                 installedDate=item['installed_date'],
+                                                                installer_comment=item['installer_comment'],
                                                                 poolId=item['app_pool_id'],
                                                                 # poolRowNum=item['pool_row_id'],
                                                                 hash=item['hash'],
@@ -1040,6 +1047,7 @@ async def get_installer_application(application_id: int):
                         installDate=item['install_date'],
                         timeSlot=item['time_slot'],
                         installedDate=item['installed_date'],
+                        installer_comment=item['installer_comment'],
                         poolId=item['app_pool_id'],
                         # poolRowNum=results['pool_row_id'],
                         hash=item['hash'],
@@ -1126,6 +1134,9 @@ async def update_app(updated_app: Union[NewApplication, UpdatedApplicationData, 
     if isinstance(updated_app, UpdatedInstallerApplicationData) and updated_app.installedDate:
         updates.append("installed_date = %s")
         params.append(updated_app.installedDate)
+    if isinstance(updated_app, UpdatedInstallerApplicationData) and updated_app.installer_comment:
+        updates.append("installer_comment = %s")
+        params.append(updated_app.installer_comment)
     if isinstance(updated_app, NewApplication) and updated_app.poolId:
         updates.append("app_pool_id = %s")
         params.append(updated_app.poolId)
@@ -1351,73 +1362,76 @@ async def get_pool(pool_id: int) -> AppPoolData:
                                    entities=applications_list) if app_pool else None
 
 
-async def get_pools(installer_name: str = None, status_filter: str = None):
+async def get_pools(installer_name: str = None,
+                    status_filter: str = None,
+                    installed_date_filter: datetime.date = None):
     query = '''
     SELECT 
-    app_pool.id AS pool_id, 
-    app_pool.status AS pool_status,
-    app_pool.installer_id AS pool_installer,
-    app_pool.row_num,
-    users.firstname,
-    users.middlename,
-    users.lastname,
-    JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'id', applications.id, 
-            'type', applications.type,
-            'client', applications.client,
-            'installerId', applications.installer_id,
-            'comment', applications.comment,
-            'status', applications.status,
-            'address', applications.address,
-            'installDate', applications.install_date,
-            'timeSlot', applications.time_slot,
-            'hash', applications.hash,
-            'poolId', applications.app_pool_id,
-            'images', COALESCE((
-                SELECT JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'id', images.id, 
-                        'name', images.name, 
-                        'mime_type', images.mime_type, 
-                        'width', images.width, 
-                        'height', images.height,
-                        'size', images.size, 
-                        'path', images.path,
-                        'installerId', images.installer_id,
-                        'applicationId', images.application_id
+        app_pool.id AS pool_id, 
+        app_pool.status AS pool_status,
+        app_pool.installer_id AS pool_installer,
+        app_pool.row_num,
+        users.firstname,
+        users.middlename,
+        users.lastname,
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', applications.id, 
+                'type', applications.type,
+                'client', applications.client,
+                'installerId', applications.installer_id,
+                'comment', applications.comment,
+                'status', applications.status,
+                'address', applications.address,
+                'installDate', applications.install_date,
+                'installedDate', applications.installed_date,
+                'timeSlot', applications.time_slot,
+                'hash', applications.hash,
+                'poolId', applications.app_pool_id,
+                'images', COALESCE((
+                    SELECT JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'id', images.id, 
+                            'name', images.name, 
+                            'mime_type', images.mime_type, 
+                            'width', images.width, 
+                            'height', images.height,
+                            'size', images.size, 
+                            'path', images.path,
+                            'installerId', images.installer_id,
+                            'applicationId', images.application_id
+                        )
                     )
-                )
-                FROM images
-                WHERE images.application_id = applications.id
-            ), JSON_ARRAY()),
-            'equipment', COALESCE((
-                SELECT JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'id', equipment.id, 
-                        'name', equipment.name, 
-                        'serial', equipment.serial, 
-                        'comment', equipment.comment,
-                        'installerId', equipment.installer_id,
-                        'applicationId', equipment.application_id, 
-                        'hash', equipment.hash
+                    FROM images
+                    WHERE images.application_id = applications.id
+                ), JSON_ARRAY()),
+                'equipment', COALESCE((
+                    SELECT JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'id', equipment.id, 
+                            'name', equipment.name, 
+                            'serial', equipment.serial, 
+                            'comment', equipment.comment,
+                            'installerId', equipment.installer_id,
+                            'applicationId', equipment.application_id, 
+                            'hash', equipment.hash
+                        )
                     )
-                )
-                FROM equipment
-                WHERE equipment.application_id = applications.id
-            ), JSON_ARRAY())
-        )
-    ) AS applications
-FROM (
-        SELECT *,
-               ROW_NUMBER() OVER (ORDER BY id) AS row_num
-        FROM app_pool
-    ) AS app_pool
-LEFT JOIN 
-    applications ON app_pool.id = applications.app_pool_id
-LEFT JOIN 
-    users ON app_pool.installer_id = users.id
-'''
+                    FROM equipment
+                    WHERE equipment.application_id = applications.id
+                ), JSON_ARRAY())
+            )
+        ) AS applications
+    FROM (
+            SELECT *,
+                   ROW_NUMBER() OVER (ORDER BY id) AS row_num
+            FROM app_pool
+        ) AS app_pool
+    LEFT JOIN 
+        applications ON app_pool.id = applications.app_pool_id
+    LEFT JOIN 
+        users ON app_pool.installer_id = users.id
+    '''
 
     filters = []
     conditions = []
@@ -1495,13 +1509,22 @@ LEFT JOIN
                                        'middlename': installer_middlename,
                                        'lastname': installer_lastname},
                             installDate=app['installDate'],
+                            installedDate=app['installedDate'],
                             timeSlot=app['timeSlot'],
                             hash=app['hash'],
                             poolId=app['poolId'],
                             images=crm_images,
                             equipments=crm_equipment
                         )
+
                         applications_list.append(application_data)
+
+                        if installed_date_filter:
+                            applications_list = [
+                                app for app in applications_list
+                                if app.installedDate.date() == installed_date_filter
+                            ]
+
                     processed_data.append(AppPoolData(id=pool_id, poolRowNum=pool_row_num, status=pool_status, installerId=pool_installer,
                                                       entities=applications_list))
                 return processed_data

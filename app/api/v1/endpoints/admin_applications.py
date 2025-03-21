@@ -1,4 +1,5 @@
 # from dependency_injector.wiring import Provide, inject
+import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
@@ -66,8 +67,9 @@ async def get_pools(page: int = Query(1, ge=1), per_page: int = Query(10, le=100
                     installer_filter: str = Query(None,
                                                   regex="^[^\s]+$",
                                                   description="installer name, lastname or middlename"),
+                    installed_date_filter: datetime.date = Query(None, description='installed date'),
                     current_user: str = Depends(get_current_user)):
-    response = await service.get_pools(page, per_page, installer_filter, status_filter)
+    response = await service.get_pools(page, per_page, installer_filter, status_filter, installed_date_filter)
     return AppPoolResponse(status='ok', data=response)
 
 @router.get("/admin-pool/{pool_id}",

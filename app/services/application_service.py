@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import random
 
 from fastapi import status
@@ -231,8 +232,13 @@ class AppService:
         #                    entity=updated_application)
 
 
-    async def get_pools(self, page: int, limit: int, installer_filter: str, status_filter: str) -> AppPools:
-        pools = await get_pools(installer_filter, status_filter)
+    async def get_pools(self,
+                        page: int,
+                        limit: int,
+                        installer_filter: str,
+                        status_filter: str,
+                        installed_date_filter: datetime.date) -> AppPools:
+        pools = await get_pools(installer_filter, status_filter, installed_date_filter)
         total_items = len(pools)
         paginated_items = self.paginate(pools, page, limit)
         total_pages = (total_items + limit - 1) // limit

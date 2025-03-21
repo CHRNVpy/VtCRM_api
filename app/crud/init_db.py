@@ -47,6 +47,7 @@ async def init_db():
                     "app_pool_id INT, "
                     "hash TEXT, "
                     "installed_date DATETIME, "
+                    "installer_comment TEXT, "
                     "FOREIGN KEY(installer_id) REFERENCES users(id), "
                     "FOREIGN KEY(app_pool_id) REFERENCES app_pool(id))"
                 )

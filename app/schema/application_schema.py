@@ -77,6 +77,7 @@ class UpdatedInstallerApplicationData(BaseModel):
     status: Optional[Literal['finished']] = None
     client: Optional[int] = None
     installedDate: Optional[datetime.date] = None
+    installer_comment: Optional[str] = None
     images: Optional[List[int]] = None
     steps: Optional[List[LineSetupStep]] = None
 
@@ -94,6 +95,7 @@ class ApplicationData(BaseModel):
     installDate: Optional[datetime.date] = None
     timeSlot: Optional[str] = None
     installedDate: Optional[datetime.datetime] = None
+    installer_comment: Optional[str] = None
     poolId: Optional[int] = None
     poolRowNum: Optional[int] = None
     hash: Optional[str] = None
@@ -113,6 +115,7 @@ class LineSetupApplicationData(BaseModel):
     installDate: datetime.date
     timeSlot: str
     installedDate: Optional[datetime.datetime] = None
+    installer_comment: Optional[str] = None
     poolId: Optional[int] = None
     poolRowNum: Optional[int] = None
     hash: str
