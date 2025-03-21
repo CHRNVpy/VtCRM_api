@@ -1522,7 +1522,8 @@ async def get_pools(installer_name: str = None,
                         if installed_date_filter:
                             applications_list = [
                                 app for app in applications_list
-                                if app.installedDate.date() == installed_date_filter
+                                if app.installedDate and isinstance(app.installedDate, datetime.date)
+                                   and app.installedDate.date() == installed_date_filter
                             ]
 
                     processed_data.append(AppPoolData(id=pool_id, poolRowNum=pool_row_num, status=pool_status, installerId=pool_installer,
