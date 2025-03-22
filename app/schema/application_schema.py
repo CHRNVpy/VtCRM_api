@@ -95,7 +95,7 @@ class ApplicationData(BaseModel):
     installDate: Optional[datetime.date] = None
     timeSlot: Optional[str] = None
     installedDate: Optional[datetime.datetime] = None
-    installer_comment: Optional[str] = None
+    installerComment: Optional[str] = None
     poolId: Optional[int] = None
     poolRowNum: Optional[int] = None
     hash: Optional[str] = None
