@@ -115,7 +115,7 @@ class LineSetupApplicationData(BaseModel):
     installDate: datetime.date
     timeSlot: str
     installedDate: Optional[datetime.datetime] = None
-    installer_comment: Optional[str] = None
+    installerComment: Optional[str] = None
     poolId: Optional[int] = None
     poolRowNum: Optional[int] = None
     hash: str
