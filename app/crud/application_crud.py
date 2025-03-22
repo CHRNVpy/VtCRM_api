@@ -1528,6 +1528,11 @@ async def get_pools(installer_name: str = None,
 
                     processed_data.append(AppPoolData(id=pool_id, poolRowNum=pool_row_num, status=pool_status, installerId=pool_installer,
                                                       entities=applications_list))
+
+                    if installed_date_filter:
+
+                        processed_data = [pool for pool in processed_data if pool.entities]
+
                 return processed_data
 
 async def add_step(step: LineSetupStep, app_id: int):
