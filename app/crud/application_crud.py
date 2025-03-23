@@ -1134,7 +1134,7 @@ async def update_app(updated_app: Union[NewApplication, UpdatedApplicationData, 
     if isinstance(updated_app, UpdatedInstallerApplicationData) and updated_app.installedDate:
         updates.append("installed_date = %s")
         params.append(updated_app.installedDate)
-    if isinstance(updated_app, UpdatedInstallerApplicationData) and updated_app.installer_comment:
+    if isinstance(updated_app, UpdatedInstallerApplicationData) and updated_app.installerComment:
         updates.append("installer_comment = %s")
         params.append(updated_app.installerComment)
     if isinstance(updated_app, NewApplication) and updated_app.poolId:
