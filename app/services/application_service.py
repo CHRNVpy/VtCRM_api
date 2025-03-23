@@ -192,11 +192,12 @@ class AppService:
                 await reset_images(application_id)
 
         await update_version('applications')
-        if updated_app.status == 'finished':
-            await reset_installer_equipment(application_id)
+        if updated_app.status in ['finished', 'cancelled']:
+            if updated_app.status == 'finished':
+                await reset_installer_equipment(application_id)
             await self.finish_pool(application_id)
-        if updated_app.status == 'approved':
-            await self.approve_pool(application_id)
+        # if updated_app.status == 'approved':
+        #     await self.approve_pool(application_id)
 
         if updated_app.steps:
             await delete_steps(application_id)

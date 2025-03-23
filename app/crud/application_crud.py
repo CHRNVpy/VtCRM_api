@@ -1182,7 +1182,7 @@ async def all_pool_apps_approved(app_id: int):
 async def all_pool_apps_finished(app_id: int):
     query = '''SELECT status
                 FROM applications
-                WHERE status != 'cancelled' AND app_pool_id = (SELECT app_pool_id 
+                WHERE app_pool_id = (SELECT app_pool_id 
                 FROM applications WHERE id = %s);'''
 
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
@@ -1190,7 +1190,7 @@ async def all_pool_apps_finished(app_id: int):
             async with conn.cursor() as cur:
                 await cur.execute(query, app_id)
                 result = await cur.fetchall()
-                all_finished = all(value == 'finished' for t in result for value in t)
+                all_finished = all(value in ('finished', 'cancelled') for t in result for value in t)
                 return all_finished
 
 
