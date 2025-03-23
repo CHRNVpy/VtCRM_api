@@ -74,10 +74,10 @@ class LineSetupStepFull(BaseModel):
 class UpdatedInstallerApplicationData(BaseModel):
 
     ver: int
-    status: Optional[Literal['finished']] = None
+    status: Optional[Literal['finished', 'cancelled']] = None
     client: Optional[int] = None
     installedDate: Optional[datetime.date] = None
-    installer_comment: Optional[str] = None
+    installerComment: Optional[str] = None
     images: Optional[List[int]] = None
     steps: Optional[List[LineSetupStep]] = None
 
