@@ -76,7 +76,7 @@ class UpdatedInstallerApplicationData(BaseModel):
     ver: int
     status: Optional[Literal['finished', 'cancelled']] = None
     client: Optional[int] = None
-    installedDate: Optional[datetime.date] = None
+    installedDate: Optional[datetime.date] = datetime.datetime.now().date()
     installerComment: Optional[str] = None
     images: Optional[List[int]] = None
     steps: Optional[List[LineSetupStep]] = None
