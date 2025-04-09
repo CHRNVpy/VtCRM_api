@@ -21,14 +21,14 @@ async def get_client_data_felix(account):
             LEFT JOIN 
                 address a ON a.id = cpa.customer_id
             LEFT JOIN 
-                customer_contact cc ON cc.customer_id = cpa.customer_id 
+                customer_contact cc ON cc.customer_id = cpa.customer_id
             WHERE 
                 cpa.login = %s'''
 
     async with aiomysql.create_pool(**configs.EXT_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(query, (account,))
+                await cur.execute(query, (int(account),))
                 client_data = await cur.fetchone()
                 return ClientData(**client_data) if client_data else ClientData()
 
@@ -69,5 +69,3 @@ async def get_client_data(account):
         data = await get_client_data_bgbilling(account)
 
     return data
-
-# print(asyncio.run(get_client_data(9419)))
