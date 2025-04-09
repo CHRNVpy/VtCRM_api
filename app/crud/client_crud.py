@@ -9,21 +9,21 @@ from app.schema.application_schema import ClientData
 async def get_client_data_felix(account):
 
     query = '''
-    SELECT 
-        cpa.login AS account,
-        c.name AS fullName,
-        cc.num AS phone,
-        a.name AS address
-    FROM 
-        customer_portal_account cpa
-    LEFT JOIN 
-        customer c ON c.id = cpa.customer_id
-    LEFT JOIN 
-        address a ON a.id = cpa.customer_id
-    LEFT JOIN 
-        customer_contact cc ON cc.customer_id = cpa.customer_id 
-    WHERE 
-        cpa.customer_id = %s'''
+            SELECT 
+                cpa.login AS account,
+                c.name AS fullName,
+                cc.num AS phone,
+                a.name AS address
+            FROM 
+                customer_portal_account cpa
+            LEFT JOIN 
+                customer c ON c.id = cpa.customer_id
+            LEFT JOIN 
+                address a ON a.id = cpa.customer_id
+            LEFT JOIN 
+                customer_contact cc ON cc.customer_id = cpa.customer_id 
+            WHERE 
+                cpa.login = %s'''
 
     async with aiomysql.create_pool(**configs.EXT_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
@@ -61,13 +61,13 @@ async def get_client_data_bgbilling(account):
 
 async def get_client_data(account):
 
-    match len(str(account)):
 
-        case 4:
-            data = await get_client_data_felix(account)
-        case 5:
-            data = await get_client_data_bgbilling(account)
-        case _:
-            data = ClientData()
+    data = await get_client_data_felix(account)
+
+    if not data.account:
+
+        data = await get_client_data_bgbilling(account)
 
     return data
+
+# print(asyncio.run(get_client_data(9419)))
