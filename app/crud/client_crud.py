@@ -23,7 +23,7 @@ async def get_client_data_felix(account):
     LEFT JOIN 
         customer_contact cc ON cc.customer_id = cpa.customer_id 
     WHERE 
-        cpa.login = %s'''
+        cpa.customer_id = %s'''
 
     async with aiomysql.create_pool(**configs.EXT_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
@@ -71,3 +71,5 @@ async def get_client_data(account):
             data = ClientData()
 
     return data
+
+print(asyncio.run(get_client_data(10000)))
