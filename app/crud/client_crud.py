@@ -71,5 +71,3 @@ async def get_client_data(account):
             data = ClientData()
 
     return data
-
-print(asyncio.run(get_client_data(10000)))
