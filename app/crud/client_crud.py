@@ -10,7 +10,7 @@ async def get_client_data_felix(account):
 
     query = '''
     SELECT 
-        cpa.customer_id AS account,
+        cpa.login AS account,
         c.name AS fullName,
         cc.num AS phone,
         a.name AS address
@@ -23,7 +23,7 @@ async def get_client_data_felix(account):
     LEFT JOIN 
         customer_contact cc ON cc.customer_id = cpa.customer_id 
     WHERE 
-        cpa.customer_id = %s'''
+        cpa.login = %s'''
 
     async with aiomysql.create_pool(**configs.EXT_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
