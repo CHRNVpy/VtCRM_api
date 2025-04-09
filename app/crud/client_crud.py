@@ -8,6 +8,9 @@ from app.schema.application_schema import ClientData
 
 async def get_client_data_felix(account):
 
+    if account:
+        account = int(account)
+
     query = '''
             SELECT 
                 cpa.login AS account,
@@ -28,7 +31,7 @@ async def get_client_data_felix(account):
     async with aiomysql.create_pool(**configs.EXT_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(query, (int(account),))
+                await cur.execute(query, (account,))
                 client_data = await cur.fetchone()
                 return ClientData(**client_data) if client_data else ClientData()
 
