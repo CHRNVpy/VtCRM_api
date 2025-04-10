@@ -1366,75 +1366,31 @@ async def get_pool(pool_id: int) -> AppPoolData:
                                    entities=applications_list) if app_pool else None
 
 
-async def get_pools(installer_name: str = None,
-                    status_filter: str = None,
-                    installed_date_filter: datetime.date = None):
-    query = '''
+async def get_pools(
+        installer_name: str = None,
+        status_filter: str = None,
+        installed_date_filter: datetime.date = None,
+        page: int = 1,
+        page_size: int = 20
+):
+    """Get pools with pagination and optimized queries."""
+    offset = (page - 1) * page_size
+
+    # Step 1: Get the basic pool data with pagination
+    pool_query = '''
     SELECT 
-        app_pool.id AS pool_id, 
-        app_pool.status AS pool_status,
-        app_pool.installer_id AS pool_installer,
-        app_pool.row_num,
-        users.firstname,
-        users.middlename,
-        users.lastname,
-        JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', applications.id, 
-                'type', applications.type,
-                'client', applications.client,
-                'installerId', applications.installer_id,
-                'comment', applications.comment,
-                'status', applications.status,
-                'address', applications.address,
-                'installDate', applications.install_date,
-                'installedDate', applications.installed_date,
-                'timeSlot', applications.time_slot,
-                'hash', applications.hash,
-                'poolId', applications.app_pool_id,
-                'images', COALESCE((
-                    SELECT JSON_ARRAYAGG(
-                        JSON_OBJECT(
-                            'id', images.id, 
-                            'name', images.name, 
-                            'mime_type', images.mime_type, 
-                            'width', images.width, 
-                            'height', images.height,
-                            'size', images.size, 
-                            'path', images.path,
-                            'installerId', images.installer_id,
-                            'applicationId', images.application_id
-                        )
-                    )
-                    FROM images
-                    WHERE images.application_id = applications.id
-                ), JSON_ARRAY()),
-                'equipment', COALESCE((
-                    SELECT JSON_ARRAYAGG(
-                        JSON_OBJECT(
-                            'id', equipment.id, 
-                            'name', equipment.name, 
-                            'serial', equipment.serial, 
-                            'comment', equipment.comment,
-                            'installerId', equipment.installer_id,
-                            'applicationId', equipment.application_id, 
-                            'hash', equipment.hash
-                        )
-                    )
-                    FROM equipment
-                    WHERE equipment.application_id = applications.id
-                ), JSON_ARRAY())
-            )
-        ) AS applications
+        ap.id AS pool_id, 
+        ap.status AS pool_status,
+        ap.installer_id AS pool_installer,
+        ap.row_num,
+        u.firstname,
+        u.middlename,
+        u.lastname
     FROM (
-            SELECT *,
-                   ROW_NUMBER() OVER (ORDER BY id) AS row_num
-            FROM app_pool
-        ) AS app_pool
-    LEFT JOIN 
-        applications ON app_pool.id = applications.app_pool_id
-    LEFT JOIN 
-        users ON app_pool.installer_id = users.id
+        SELECT *, ROW_NUMBER() OVER (ORDER BY id) AS row_num
+        FROM app_pool
+    ) AS ap
+    LEFT JOIN users u ON ap.installer_id = u.id
     '''
 
     filters = []
@@ -1442,102 +1398,213 @@ async def get_pools(installer_name: str = None,
 
     if installer_name:
         conditions.append(
-            '(LOWER(users.firstname) LIKE %s OR LOWER(users.lastname) LIKE %s OR LOWER(users.middlename) LIKE %s)')
+            '(LOWER(u.firstname) LIKE %s OR LOWER(u.lastname) LIKE %s OR LOWER(u.middlename) LIKE %s)'
+        )
         filters.extend([f'%{installer_name.lower()}%'] * 3)
 
     if status_filter:
-        conditions.append('app_pool.status = %s')
+        conditions.append('ap.status = %s')
         filters.append(status_filter)
 
     if conditions:
-        query += ' WHERE ' + ' AND '.join(conditions)
+        pool_query += ' WHERE ' + ' AND '.join(conditions)
 
-    query += ' GROUP BY app_pool.id, app_pool.status ORDER BY app_pool.id DESC;'
+    pool_query += ' ORDER BY ap.id DESC LIMIT %s OFFSET %s;'
+    filters.append(page_size)
+    filters.append(offset)
 
-    async with (aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool):
+    # Execute queries using connection pool
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(query, filters)
-                results = await cur.fetchall()
-                processed_data = []
-                for app_pool in results:
-                    pool_id, pool_status, pool_installer, pool_row_num, installer_name, installer_middlename, installer_lastname, applications_json = app_pool
-                    applications = json.loads(applications_json)
+            # Create cursor with dictionary=True to get results as dicts
+            async with conn.cursor(aiomysql.DictCursor) as cur:
+                # Step 1: Get pools
+                await cur.execute(pool_query, filters)
+                pool_results = await cur.fetchall()
+
+                if not pool_results:
+                    return []
+
+                processed_pools = []
+
+                # Get pool IDs for IN clause
+                pool_ids = [pool['pool_id'] for pool in pool_results]
+                placeholders = ', '.join(['%s'] * len(pool_ids))
+
+                # Step 2: Get applications for these pools
+                app_query = f'''
+                SELECT 
+                    a.id, a.type, a.client, a.installer_id, a.comment, 
+                    a.status, a.address, a.install_date, a.installed_date, 
+                    a.time_slot, a.hash, a.app_pool_id
+                FROM applications a
+                WHERE a.app_pool_id IN ({placeholders})
+                '''
+
+                await cur.execute(app_query, pool_ids)
+                app_results = await cur.fetchall()
+
+                # Group applications by pool_id
+                apps_by_pool = {}
+                all_app_ids = []
+
+                for app in app_results:
+                    pool_id = app['app_pool_id']
+                    if pool_id not in apps_by_pool:
+                        apps_by_pool[pool_id] = []
+
+                    # Check installed_date filter here to avoid fetching unnecessary data
+                    if installed_date_filter and app['installed_date']:
+                        app_installed_date = app['installed_date']
+                        if isinstance(app_installed_date, datetime.datetime):
+                            app_installed_date = app_installed_date.date()
+
+                        if app_installed_date != installed_date_filter:
+                            continue
+
+                    apps_by_pool[pool_id].append(app)
+                    all_app_ids.append(app['id'])
+
+                # Skip empty pools if date filter applied
+                if installed_date_filter:
+                    pool_results = [pool for pool in pool_results if pool['pool_id'] in apps_by_pool]
+
+                if not all_app_ids:
+                    # Return pools with empty application lists if no apps found
+                    for pool in pool_results:
+                        processed_pools.append(
+                            AppPoolData(
+                                id=pool['pool_id'],
+                                poolRowNum=pool['row_num'],
+                                status=pool['pool_status'],
+                                installerId=pool['pool_installer'],
+                                entities=[]
+                            )
+                        )
+                    return processed_pools
+
+                # Step 3: Get images for these applications
+                app_placeholders = ', '.join(['%s'] * len(all_app_ids))
+                images_query = f'''
+                SELECT 
+                    id, name, mime_type, width, height, size, path, 
+                    installer_id, application_id
+                FROM images
+                WHERE application_id IN ({app_placeholders})
+                '''
+
+                await cur.execute(images_query, all_app_ids)
+                images_results = await cur.fetchall()
+
+                # Group images by application_id
+                images_by_app = {}
+                for img in images_results:
+                    app_id = img['application_id']
+                    if app_id not in images_by_app:
+                        images_by_app[app_id] = []
+                    images_by_app[app_id].append(img)
+
+                # Step 4: Get equipment for these applications
+                equipment_query = f'''
+                SELECT 
+                    id, name, serial, comment, installer_id, application_id, hash
+                FROM equipment
+                WHERE application_id IN ({app_placeholders})
+                '''
+
+                await cur.execute(equipment_query, all_app_ids)
+                equipment_results = await cur.fetchall()
+
+                # Group equipment by application_id
+                equipment_by_app = {}
+                for item in equipment_results:
+                    app_id = item['application_id']
+                    if app_id not in equipment_by_app:
+                        equipment_by_app[app_id] = []
+                    equipment_by_app[app_id].append(item)
+
+                # Step 5: Process pools
+                clients_cache = {}  # Cache for client data
+
+                for pool in pool_results:
+                    pool_id = pool['pool_id']
                     applications_list = []
-                    for app in applications:
-                        # Parse the images JSON string
-                        images_list = app.get('images')
-                        equipment_list = app.get('equipment')
+
+                    for app in apps_by_pool.get(pool_id, []):
+                        app_id = app['id']
+
+                        # Process images for this application
                         crm_images = []
+                        for img in images_by_app.get(app_id, []):
+                            crm_image = CrmImage(
+                                id=img['id'],
+                                name=img['name'],
+                                mimeType=img['mime_type'],
+                                width=img['width'],
+                                height=img['height'],
+                                size=img['size'],
+                                path=img['path'],
+                                installerId=img['installer_id'],
+                                applicationId=img['application_id']
+                            )
+                            crm_images.append(crm_image)
+
+                        # Process equipment for this application
                         crm_equipment = []
-                        if images_list:
-                            # Parse each JSON object
-                            for img in images_list:
-                                crm_image = CrmImage(
-                                    id=img['id'],
-                                    name=img['name'],
-                                    mimeType=img['mime_type'],
-                                    width=img['width'],
-                                    height=img['height'],
-                                    size=img['size'],
-                                    path=img['path'],
-                                    installerId=img['installerId'],
-                                    applicationId=img['applicationId']
-                                )
-                                crm_images.append(crm_image)
+                        for item in equipment_by_app.get(app_id, []):
+                            equipment_model = Equipment(
+                                id=item['id'],
+                                name=item['name'],
+                                serialNumber=item['serial'],
+                                comment=item['comment'],
+                                applicationId=item['application_id'],
+                                installerId=item['installer_id'],
+                                hash=item['hash']
+                            )
+                            crm_equipment.append(equipment_model)
 
-                        if equipment_list:
-                            for item in equipment_list:
-                                equipment_model = Equipment(
-                                    id=item['id'],
-                                    name=item['name'],
-                                    serialNumber=item['serial'],
-                                    comment=item['comment'],
-                                    applicationId=item['applicationId'], #not sure we need this
-                                    installerId=item['installerId'], #not sure we need this
-                                    hash=item['hash']
-                                )
+                        # Get client data (cached)
+                        client_id = app['client']
+                        if client_id not in clients_cache:
+                            clients_cache[client_id] = await get_client_data(client_id)
 
-                                crm_equipment.append(equipment_model)
-
-                        # Create ApplicationImageData object
+                        # Create ApplicationData object
                         application_data = ApplicationData(
-                            id=app['id'],
+                            id=app_id,
                             type=app['type'],
-                            client=await get_client_data(app['client']),
+                            client=clients_cache[client_id],
                             comment=app['comment'],
                             status=app['status'],
                             address=app['address'],
-                            installer={'id': pool_installer,
-                                       'firstname': installer_name,
-                                       'middlename': installer_middlename,
-                                       'lastname': installer_lastname},
-                            installDate=app['installDate'],
-                            installedDate=app['installedDate'],
-                            timeSlot=app['timeSlot'],
+                            installer={
+                                'id': pool['pool_installer'],
+                                'firstname': pool['firstname'],
+                                'middlename': pool['middlename'],
+                                'lastname': pool['lastname']
+                            },
+                            installDate=app['install_date'],
+                            installedDate=app['installed_date'],
+                            timeSlot=app['time_slot'],
                             hash=app['hash'],
-                            poolId=app['poolId'],
+                            poolId=app['app_pool_id'],
                             images=crm_images,
                             equipments=crm_equipment
                         )
 
                         applications_list.append(application_data)
 
-                        if installed_date_filter:
-                            applications_list = [
-                                app for app in applications_list
-                                if app.installedDate and isinstance(app.installedDate, datetime.date)
-                                   and app.installedDate.date() == installed_date_filter
-                            ]
+                    # Create pool object
+                    processed_pool = AppPoolData(
+                        id=pool_id,
+                        poolRowNum=pool['row_num'],
+                        status=pool['pool_status'],
+                        installerId=pool['pool_installer'],
+                        entities=applications_list
+                    )
 
-                    processed_data.append(AppPoolData(id=pool_id, poolRowNum=pool_row_num, status=pool_status, installerId=pool_installer,
-                                                      entities=applications_list))
+                    processed_pools.append(processed_pool)
 
-                    if installed_date_filter:
-
-                        processed_data = [pool for pool in processed_data if pool.entities]
-
-                return processed_data
+                return processed_pools
 
 async def add_step(step: LineSetupStep, app_id: int):
     query = '''INSERT INTO coordinates (type, latitude, longitude, application_id) VALUES (%s, %s, %s, %s)'''
