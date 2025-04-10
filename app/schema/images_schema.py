@@ -30,4 +30,4 @@ class ImageVersion(BaseModel):
 
 class ImageResponse(BaseModel):
     status: str
-    data: Union[ImageVersion, ErrorDetails]
+    data: Union[ImageVersion, ErrorDetails, None]

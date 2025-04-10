@@ -1,6 +1,8 @@
+import hashlib
 import io
 import json
 import mimetypes
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -9,7 +11,7 @@ from PIL import Image
 from fastapi import UploadFile, status
 
 # from app.crud.admin_crud import get_user_id, get_version, update_version
-from app.crud.images_crud import create_image, get_image
+from app.crud.images_crud import create_image, get_image, get_image_by_hash, delete_image
 from app.schema.error_schema import ErrorDetails
 from app.schema.images_schema import ImageMetadata, ImageVersion
 from app.util.exception import VtCRM_HTTPException
@@ -28,6 +30,15 @@ class ImagesService:
                                       error_details=ErrorDetails(code="File is not an image"))
 
         content = await file.read()
+
+        # Calculate content hash
+        file_hash = hashlib.sha256(content).hexdigest()
+        existing_image = await get_image_by_hash(file_hash)
+        if existing_image:
+            return ImageVersion(entity=existing_image)
+
+        # Reset file cursor position after reading
+        await file.seek(0)
 
         # Get image dimensions
         image = Image.open(io.BytesIO(content))
@@ -56,7 +67,17 @@ class ImagesService:
         # user_id = await get_user_id(current_user)
 
         image_id = await create_image(unique_filename, mime_type, width, height,
-                                      file.size, image_path)
+                                      file.size, image_path, file_hash)
         # await update_version('images')
 
         return ImageVersion(entity=await get_image(image_id))
+
+    async def delete_image(self, image_id: int):
+
+        image = await get_image(image_id)
+        if not image:
+            raise VtCRM_HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                      error_details=ErrorDetails(code="File doesn't exist"))
+        if os.path.exists(image.path):
+            os.remove(image.path)
+        await delete_image(image_id)

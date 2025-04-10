@@ -22,3 +22,12 @@ async def upload_image(file: UploadFile = File(...),
 
     response = await service.create_image(file, current_user)
     return ImageResponse(status='ok', data=response)
+
+@router.delete("/image/{image_id}",
+             response_model=ImageResponse,
+             responses={401: {"description": "Invalid access token"}})
+async def upload_image(image_id: int,
+                       current_user: str = Depends(get_current_user)):
+
+    await service.delete_image(image_id)
+    return ImageResponse(status='ok', data=None)

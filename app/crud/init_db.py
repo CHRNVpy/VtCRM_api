@@ -90,6 +90,7 @@ async def init_db():
                     "application_id INT, "
                     "installer_id INT, "
                     "step_id INT, "
+                    "hash TEXT, "
                     "FOREIGN KEY(application_id) REFERENCES applications(id), "
                     "FOREIGN KEY(installer_id) REFERENCES users(id), "
                     "FOREIGN KEY(step_id) REFERENCES coordinates(id))"
