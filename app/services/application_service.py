@@ -239,12 +239,16 @@ class AppService:
                         installer_filter: str,
                         status_filter: str,
                         installed_date_filter: datetime.date) -> AppPools:
-        pools = await get_pools(installer_filter, status_filter, installed_date_filter, page=page, page_size=limit)
-        total_items = len(pools)
-        paginated_items = self.paginate(pools, page, limit)
+        total_items, pools = await get_pools(installer_filter,
+                                             status_filter,
+                                             installed_date_filter,
+                                             page=page,
+                                             page_size=limit)
+        # total_items = len(pools)
+        # paginated_items = self.paginate(pools, page, limit)
         total_pages = (total_items + limit - 1) // limit
         return AppPools(appVer=await get_version('applications'),
-                        entities=paginated_items,
+                        entities=pools,
                         page=page,
                         perPage=limit,
                         pages=total_pages,
