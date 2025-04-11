@@ -622,9 +622,9 @@ async def get_installer_applications(current_user: str):
                             equipment_by_step[step_id].append(eq)
 
     # 5. Batch fetch client data instead of fetching one by one
-    client_data_map = {}
-    if client_ids:
-        client_data_map = await get_clients_data_batch(client_ids)
+    # client_data_map = {}
+    # if client_ids:
+    #     client_data_map = await get_clients_data_batch(client_ids)
 
     # 6. Process and build response objects with already fetched data
     for item in applications:
@@ -761,36 +761,36 @@ async def get_installer_applications(current_user: str):
 
 
 # Helper function to batch fetch client data
-async def get_clients_data_batch(client_ids):
-    """Fetch multiple clients data in a single database call"""
-    if not client_ids:
-        return {}
-
-    # Implement the batch client data fetching - replace with your actual implementation
-    # This is a placeholder assuming get_client_data could be adapted for batch operations
-    client_data_map = {}
-
-    query = '''
-        SELECT * FROM clients 
-        WHERE id IN ({})
-    '''.format(','.join(['%s'] * len(client_ids)))
-
-    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
-        async with pool.acquire() as conn:
-            async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(query, client_ids)
-                clients = await cur.fetchall()
-
-                for client in clients:
-                    # Transform raw data to client model as needed
-                    client_id = client['id']
-                    client_data_map[client_id] = {
-                        'id': client['id'],
-                        'name': client['name'],
-                        # Add other fields as needed
-                    }
-
-    return client_data_map
+# async def get_clients_data_batch(client_ids):
+#     """Fetch multiple clients data in a single database call"""
+#     if not client_ids:
+#         return {}
+#
+#     # Implement the batch client data fetching - replace with your actual implementation
+#     # This is a placeholder assuming get_client_data could be adapted for batch operations
+#     client_data_map = {}
+#
+#     query = '''
+#         SELECT * FROM clients
+#         WHERE id IN ({})
+#     '''.format(','.join(['%s'] * len(client_ids)))
+#
+#     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+#         async with pool.acquire() as conn:
+#             async with conn.cursor(aiomysql.DictCursor) as cur:
+#                 await cur.execute(query, client_ids)
+#                 clients = await cur.fetchall()
+#
+#                 for client in clients:
+#                     # Transform raw data to client model as needed
+#                     client_id = client['id']
+#                     client_data_map[client_id] = {
+#                         'id': client['id'],
+#                         'name': client['name'],
+#                         # Add other fields as needed
+#                     }
+#
+#     return client_data_map
 
 async def get_installer_application(application_id: int):
 
