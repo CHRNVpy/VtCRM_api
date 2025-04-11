@@ -7,7 +7,7 @@ from typing import Optional, List, Union
 import aiomysql
 
 from app.core.config import configs
-from app.crud.client_crud import get_client_data
+from app.crud.client_crud import get_client_data, get_clients_data_batch
 from app.schema.application_schema import NewApplication, ApplicationData, UpdatedApplicationData, UpdatedPool, \
     AppPoolData, UpdatedInstallerApplicationData, LineSetupStep, LineSetupStepFull, LineSetupApplicationData, Coordinates
 from app.schema.equipment_schema import Equipment
@@ -545,8 +545,7 @@ async def get_installer_applications(current_user: str):
         ORDER BY a.install_date DESC
     '''
 
-    # Prepare client IDs list for batch fetching
-    client_ids = []
+    # Initialize variables
     installer_applications = []
 
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
@@ -557,81 +556,79 @@ async def get_installer_applications(current_user: str):
                 await cur.execute(base_query, current_user)
                 applications = await cur.fetchall()
 
+                if not applications:
+                    return []
+
                 # Build lookup dictionaries for related data
                 app_ids = [app['id'] for app in applications]
-                client_ids = [app['client'] for app in applications]
+                client_ids = [app['client'] for app in applications if app.get('client')]
 
                 # 2. Batch fetch coordinates
-                if app_ids:
-                    coords_query = '''
-                        SELECT c.* 
-                        FROM coordinates c
-                        WHERE c.application_id IN ({})
-                    '''.format(','.join(['%s'] * len(app_ids)))
-                    await cur.execute(coords_query, app_ids)
-                    coordinates = await cur.fetchall()
-                    coords_by_app = {}
-                    for coord in coordinates:
-                        app_id = coord['application_id']
-                        if app_id not in coords_by_app:
-                            coords_by_app[app_id] = []
-                        coords_by_app[app_id].append(coord)
+                coords_query = '''
+                    SELECT c.* 
+                    FROM coordinates c
+                    WHERE c.application_id IN ({})
+                '''.format(','.join(['%s'] * len(app_ids)))
+                await cur.execute(coords_query, app_ids)
+                coordinates = await cur.fetchall()
+                coords_by_app = {}
+                for coord in coordinates:
+                    app_id = coord['application_id']
+                    if app_id not in coords_by_app:
+                        coords_by_app[app_id] = []
+                    coords_by_app[app_id].append(coord)
 
-                    # 3. Batch fetch images
-                    images_query = '''
-                        SELECT img.*
-                        FROM images img
-                        WHERE img.application_id IN ({})
-                    '''.format(','.join(['%s'] * len(app_ids)))
-                    await cur.execute(images_query, app_ids)
-                    images = await cur.fetchall()
-                    images_by_app = {}
-                    images_by_step = {}
-                    for img in images:
-                        app_id = img['application_id']
-                        if app_id not in images_by_app:
-                            images_by_app[app_id] = []
-                        images_by_app[app_id].append(img)
+                # 3. Batch fetch images
+                images_query = '''
+                    SELECT img.*
+                    FROM images img
+                    WHERE img.application_id IN ({})
+                '''.format(','.join(['%s'] * len(app_ids)))
+                await cur.execute(images_query, app_ids)
+                images = await cur.fetchall()
+                images_by_app = {}
+                images_by_step = {}
+                for img in images:
+                    app_id = img['application_id']
+                    if app_id not in images_by_app:
+                        images_by_app[app_id] = []
+                    images_by_app[app_id].append(img)
 
-                        if img.get('step_id'):
-                            step_id = img['step_id']
-                            if step_id not in images_by_step:
-                                images_by_step[step_id] = []
-                            images_by_step[step_id].append(img)
+                    if img.get('step_id'):
+                        step_id = img['step_id']
+                        if step_id not in images_by_step:
+                            images_by_step[step_id] = []
+                        images_by_step[step_id].append(img)
 
-                    # 4. Batch fetch equipment
-                    equipment_query = '''
-                        SELECT eq.*
-                        FROM equipment eq
-                        WHERE eq.application_id IN ({})
-                    '''.format(','.join(['%s'] * len(app_ids)))
-                    await cur.execute(equipment_query, app_ids)
-                    equipment = await cur.fetchall()
-                    equipment_by_app = {}
-                    equipment_by_step = {}
-                    for eq in equipment:
-                        app_id = eq['application_id']
-                        if app_id not in equipment_by_app:
-                            equipment_by_app[app_id] = []
-                        equipment_by_app[app_id].append(eq)
+                # 4. Batch fetch equipment
+                equipment_query = '''
+                    SELECT eq.*
+                    FROM equipment eq
+                    WHERE eq.application_id IN ({})
+                '''.format(','.join(['%s'] * len(app_ids)))
+                await cur.execute(equipment_query, app_ids)
+                equipment = await cur.fetchall()
+                equipment_by_app = {}
+                equipment_by_step = {}
+                for eq in equipment:
+                    app_id = eq['application_id']
+                    if app_id not in equipment_by_app:
+                        equipment_by_app[app_id] = []
+                    equipment_by_app[app_id].append(eq)
 
-                        if eq.get('step_id'):
-                            step_id = eq['step_id']
-                            if step_id not in equipment_by_step:
-                                equipment_by_step[step_id] = []
-                            equipment_by_step[step_id].append(eq)
+                    if eq.get('step_id'):
+                        step_id = eq['step_id']
+                        if step_id not in equipment_by_step:
+                            equipment_by_step[step_id] = []
+                        equipment_by_step[step_id].append(eq)
 
-    # 5. Batch fetch client data instead of fetching one by one
-    # client_data_map = {}
-    # if client_ids:
-    #     client_data_map = await get_clients_data_batch(client_ids)
+    # 5. Batch fetch client data
+    client_data_map = await get_clients_data_batch(client_ids)
 
     # 6. Process and build response objects with already fetched data
-    for item in applications:
+    for idx, item in enumerate(applications):
         app_id = item['id']
-
-        # Create row_num - was previously calculated in SQL
-        row_num = app_ids.index(app_id) + 1
+        row_num = idx + 1  # Calculate row_num sequentially
 
         # Process coordinates (steps) if they exist
         if app_id in coords_by_app and coords_by_app[app_id]:
@@ -651,7 +648,7 @@ async def get_installer_applications(current_user: str):
                         size=img['size'],
                         path=img['path'],
                         applicationId=img['application_id'],
-                        installerId=img['installer_id'] if 'installer_id' in img else None
+                        installerId=img.get('installer_id')
                     ) for img in images_by_step[coord_id]]
 
                 # Get equipment for this step
@@ -661,22 +658,22 @@ async def get_installer_applications(current_user: str):
                         id=eq['id'],
                         name=eq['name'],
                         serialNumber=eq['serial'],
-                        status=eq['status'],
-                        comment=eq['comment'],
-                        applicationId=eq['application_id'] if 'application_id' in eq else None,
-                        installerId=eq['installer_id'] if 'installer_id' in eq else None,
-                        hash=eq['hash']
+                        status=eq.get('status'),
+                        comment=eq.get('comment'),
+                        applicationId=eq.get('application_id'),
+                        installerId=eq.get('installer_id'),
+                        hash=eq.get('hash')
                     ) for eq in equipment_by_step[coord_id]]
 
                 # Create coordinates object
                 coordinates = Coordinates(
-                    latitude=coord['latitude'],
-                    longitude=coord['longitude']
+                    latitude=coord.get('latitude'),
+                    longitude=coord.get('longitude')
                 ) if coord.get('latitude') else Coordinates()
 
                 if coord.get('latitude'):
                     steps.append(LineSetupStepFull(
-                        type=coord['type'],
+                        type=coord.get('type'),
                         images=step_images,
                         coords=coordinates,
                         equipments=step_equipment
@@ -685,22 +682,22 @@ async def get_installer_applications(current_user: str):
             application_data = LineSetupApplicationData(
                 id=item['id'],
                 rowNum=row_num,
-                type=item['type'],
-                client=await get_client_data(item['client']),
-                address=item['address'],
-                installer={"id": item['installer_id'],
-                           "firstname": item['firstname'],
-                           "middlename": item['middlename'],
-                           "lastname": item['lastname']},
-                problem=item['problem'],
-                comment=item['comment'],
-                status=item['status'],
-                installDate=item['install_date'],
-                timeSlot=item['time_slot'],
-                installedDate=item['installed_date'],
-                installerComment=item['installer_comment'],
-                poolId=item['app_pool_id'],
-                hash=item['hash'],
+                type=item.get('type'),
+                client=client_data_map.get(item.get('client')),
+                address=item.get('address'),
+                installer={"id": item.get('installer_id'),
+                           "firstname": item.get('firstname'),
+                           "middlename": item.get('middlename'),
+                           "lastname": item.get('lastname')},
+                problem=item.get('problem'),
+                comment=item.get('comment'),
+                status=item.get('status'),
+                installDate=item.get('install_date'),
+                timeSlot=item.get('time_slot'),
+                installedDate=item.get('installed_date'),
+                installerComment=item.get('installer_comment'),
+                poolId=item.get('app_pool_id'),
+                hash=item.get('hash'),
                 steps=steps
             )
         else:
@@ -716,7 +713,7 @@ async def get_installer_applications(current_user: str):
                     size=img['size'],
                     path=img['path'],
                     applicationId=img['application_id'],
-                    installerId=img['installer_id'] if 'installer_id' in img else None
+                    installerId=img.get('installer_id')
                 ) for img in images_by_app[app_id]]
 
             app_equipment = []
@@ -725,32 +722,32 @@ async def get_installer_applications(current_user: str):
                     id=eq['id'],
                     name=eq['name'],
                     serialNumber=eq['serial'],
-                    status=eq['status'],
-                    comment=eq['comment'],
-                    applicationId=eq['application_id'] if 'application_id' in eq else None,
-                    installerId=eq['installer_id'] if 'installer_id' in eq else None,
-                    hash=eq['hash']
+                    status=eq.get('status'),
+                    comment=eq.get('comment'),
+                    applicationId=eq.get('application_id'),
+                    installerId=eq.get('installer_id'),
+                    hash=eq.get('hash')
                 ) for eq in equipment_by_app[app_id]]
 
             application_data = ApplicationData(
                 id=item['id'],
                 rowNum=row_num,
-                type=item['type'],
-                client=await get_client_data(item['client']),
-                address=item['address'],
-                installer={"id": item['installer_id'],
-                           "firstname": item['firstname'],
-                           "middlename": item['middlename'],
-                           "lastname": item['lastname']},
-                problem=item['problem'],
-                comment=item['comment'],
-                status=item['status'],
-                installDate=item['install_date'],
-                timeSlot=item['time_slot'],
-                installedDate=item['installed_date'],
-                installerComment=item['installer_comment'],
-                poolId=item['app_pool_id'],
-                hash=item['hash'],
+                type=item.get('type'),
+                client=client_data_map.get(item.get('client')),
+                address=item.get('address'),
+                installer={"id": item.get('installer_id'),
+                           "firstname": item.get('firstname'),
+                           "middlename": item.get('middlename'),
+                           "lastname": item.get('lastname')},
+                problem=item.get('problem'),
+                comment=item.get('comment'),
+                status=item.get('status'),
+                installDate=item.get('install_date'),
+                timeSlot=item.get('time_slot'),
+                installedDate=item.get('installed_date'),
+                installerComment=item.get('installer_comment'),
+                poolId=item.get('app_pool_id'),
+                hash=item.get('hash'),
                 images=app_images,
                 equipments=app_equipment
             )
@@ -759,38 +756,6 @@ async def get_installer_applications(current_user: str):
 
     return installer_applications
 
-
-# Helper function to batch fetch client data
-# async def get_clients_data_batch(client_ids):
-#     """Fetch multiple clients data in a single database call"""
-#     if not client_ids:
-#         return {}
-#
-#     # Implement the batch client data fetching - replace with your actual implementation
-#     # This is a placeholder assuming get_client_data could be adapted for batch operations
-#     client_data_map = {}
-#
-#     query = '''
-#         SELECT * FROM clients
-#         WHERE id IN ({})
-#     '''.format(','.join(['%s'] * len(client_ids)))
-#
-#     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
-#         async with pool.acquire() as conn:
-#             async with conn.cursor(aiomysql.DictCursor) as cur:
-#                 await cur.execute(query, client_ids)
-#                 clients = await cur.fetchall()
-#
-#                 for client in clients:
-#                     # Transform raw data to client model as needed
-#                     client_id = client['id']
-#                     client_data_map[client_id] = {
-#                         'id': client['id'],
-#                         'name': client['name'],
-#                         # Add other fields as needed
-#                     }
-#
-#     return client_data_map
 
 async def get_installer_application(application_id: int):
 
