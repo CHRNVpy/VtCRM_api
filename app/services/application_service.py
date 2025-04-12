@@ -244,8 +244,7 @@ class AppService:
                                              installed_date_filter,
                                              page=page,
                                              page_size=limit)
-        # total_items = len(pools)
-        # paginated_items = self.paginate(pools, page, limit)
+
         total_pages = (total_items + limit - 1) // limit
         return AppPools(appVer=await get_version('applications'),
                         entities=pools,

@@ -881,7 +881,8 @@ async def get_installer_application(application_id: int):
                             steps.append(LineSetupStepFull(type=type,
                                                            images=crm_images,
                                                            coords=coordinates,
-                                                           equipments=crm_equipment))
+                                                           equipments=crm_equipment
+                                                       ))
 
                     application_data = LineSetupApplicationData(id=item['id'],
                                                                 rowNum=item['row_num'],
@@ -1291,23 +1292,30 @@ async def get_pools(
     """Get pools with pagination and optimized queries, returning total count."""
     offset = (page - 1) * page_size
 
-    # Base conditions for both count and data queries
-    conditions = []
-    filters = []
+    # Base conditions for the user/pool level filters
+    pool_conditions = []
+    pool_filters = []
 
     if installer_name:
-        conditions.append(
+        pool_conditions.append(
             '(LOWER(u.firstname) LIKE %s OR LOWER(u.lastname) LIKE %s OR LOWER(u.middlename) LIKE %s)'
         )
-        filters.extend([f'%{installer_name.lower()}%'] * 3)
+        pool_filters.extend([f'%{installer_name.lower()}%'] * 3)
 
     if status_filter:
-        conditions.append('ap.status = %s')
-        filters.append(status_filter)
+        # Only get pools that have at least one application with this status
+        pool_conditions.append('EXISTS (SELECT 1 FROM applications a WHERE a.app_pool_id = ap.id AND a.status = %s)')
+        pool_filters.append(status_filter)
 
-    where_clause = ' WHERE ' + ' AND '.join(conditions) if conditions else ''
+    if installed_date_filter:
+        # Only get pools that have at least one application with this installed date
+        pool_conditions.append(
+            'EXISTS (SELECT 1 FROM applications a WHERE a.app_pool_id = ap.id AND DATE(a.installed_date) = %s)')
+        pool_filters.append(installed_date_filter)
 
-    # Step 0: Count query to get total number of pools
+    where_clause = ' WHERE ' + ' AND '.join(pool_conditions) if pool_conditions else ''
+
+    # Step 0: Count query to get total number of pools that match our filters
     count_query = f'''
     SELECT COUNT(*) as total_count
     FROM (
@@ -1343,12 +1351,12 @@ async def get_pools(
             # Create cursor with dictionary=True to get results as dicts
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 # Step 0: Get total count
-                await cur.execute(count_query, filters)
+                await cur.execute(count_query, pool_filters)
                 count_result = await cur.fetchone()
                 total_pools = count_result['total_count']
 
                 # Add pagination parameters to filters
-                data_filters = filters.copy()
+                data_filters = pool_filters.copy()
                 data_filters.append(page_size)
                 data_filters.append(offset)
 
@@ -1365,17 +1373,29 @@ async def get_pools(
                 pool_ids = [pool['pool_id'] for pool in pool_results]
                 placeholders = ', '.join(['%s'] * len(pool_ids))
 
-                # Step 2: Get applications for these pools
+                # Step 2: Get applications for these pools with applied filters
                 app_query = f'''
                 SELECT 
-                    a.id, a.type, a.client, a.installer_id, a.comment, 
-                    a.status, a.address, a.install_date, a.installed_date, 
+                    a.id, a.type, a.client, a.installer_id, a.comment, a.problem,
+                    a.status, a.address, a.install_date, a.installed_date, a.installer_comment,
                     a.time_slot, a.hash, a.app_pool_id
                 FROM applications a
                 WHERE a.app_pool_id IN ({placeholders})
                 '''
 
-                await cur.execute(app_query, pool_ids)
+                app_filters = pool_ids.copy()
+
+                # Apply the status filter to applications
+                if status_filter:
+                    app_query += " AND a.status = %s"
+                    app_filters.append(status_filter)
+
+                # Apply the installed date filter to applications
+                if installed_date_filter:
+                    app_query += " AND DATE(a.installed_date) = %s"
+                    app_filters.append(installed_date_filter)
+
+                await cur.execute(app_query, app_filters)
                 app_results = await cur.fetchall()
 
                 # Group applications by pool_id
@@ -1387,39 +1407,8 @@ async def get_pools(
                     if pool_id not in apps_by_pool:
                         apps_by_pool[pool_id] = []
 
-                    # Check installed_date filter here to avoid fetching unnecessary data
-                    if installed_date_filter and app['installed_date']:
-                        app_installed_date = app['installed_date']
-                        if isinstance(app_installed_date, datetime.datetime):
-                            app_installed_date = app_installed_date.date()
-
-                        if app_installed_date != installed_date_filter:
-                            continue
-
                     apps_by_pool[pool_id].append(app)
                     all_app_ids.append(app['id'])
-
-                # Skip empty pools if date filter applied
-                if installed_date_filter:
-                    pool_results = [pool for pool in pool_results if pool['pool_id'] in apps_by_pool]
-
-                    # Adjust total count for installed_date filter
-                    # Note: This requires a separate query to get accurate total with date filter
-                    if apps_by_pool:
-                        date_count_query = f'''
-                        SELECT COUNT(DISTINCT ap.id) as filtered_count
-                        FROM app_pool ap
-                        JOIN applications a ON ap.id = a.app_pool_id
-                        LEFT JOIN users u ON ap.installer_id = u.id
-                        WHERE a.installed_date = %s
-                        {' AND ' + ' AND '.join(conditions) if conditions else ''}
-                        '''
-                        date_filters = [installed_date_filter]
-                        date_filters.extend(filters)
-
-                        await cur.execute(date_count_query, date_filters)
-                        date_count_result = await cur.fetchone()
-                        total_pools = date_count_result['filtered_count']
 
                 if not all_app_ids:
                     # Return pools with empty application lists if no apps found
@@ -1525,6 +1514,7 @@ async def get_pools(
                             id=app_id,
                             type=app['type'],
                             client=clients_cache[client_id],
+                            problem=app['problem'],
                             comment=app['comment'],
                             status=app['status'],
                             address=app['address'],
@@ -1536,6 +1526,7 @@ async def get_pools(
                             },
                             installDate=app['install_date'],
                             installedDate=app['installed_date'],
+                            installerComment=app['installer_comment'],
                             timeSlot=app['time_slot'],
                             hash=app['hash'],
                             poolId=app['app_pool_id'],
