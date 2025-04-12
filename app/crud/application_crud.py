@@ -1398,6 +1398,9 @@ async def get_pools(
                 await cur.execute(app_query, app_filters)
                 app_results = await cur.fetchall()
 
+                client_ids = [app['client'] for app in app_results if app.get('client')]
+                client_data_map = await get_clients_data_batch(client_ids)
+
                 # Group applications by pool_id
                 apps_by_pool = {}
                 all_app_ids = []
@@ -1506,14 +1509,14 @@ async def get_pools(
 
                         # Get client data (cached)
                         client_id = app['client']
-                        if client_id not in clients_cache:
-                            clients_cache[client_id] = await get_client_data(client_id)
+                        # if client_id not in clients_cache:
+                        #     clients_cache[client_id] = await get_client_data(client_id)
 
                         # Create ApplicationData object
                         application_data = ApplicationData(
                             id=app_id,
                             type=app['type'],
-                            client=clients_cache[client_id],
+                            client=client_data_map.get(client_id),
                             problem=app['problem'],
                             comment=app['comment'],
                             status=app['status'],
