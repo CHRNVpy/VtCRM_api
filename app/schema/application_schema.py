@@ -94,7 +94,7 @@ class ApplicationData(BaseModel):
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installDate: Optional[datetime.date] = None
     timeSlot: Optional[str] = None
-    installedDate: Optional[datetime.datetime] = None
+    installedDate: Optional[datetime.date] = None
     installerComment: Optional[str] = None
     poolId: Optional[int] = None
     poolRowNum: Optional[int] = None
@@ -114,7 +114,7 @@ class LineSetupApplicationData(BaseModel):
     status: Optional[Literal['active', 'pending', 'finished', 'cancelled', 'approved']] = None
     installDate: datetime.date
     timeSlot: str
-    installedDate: Optional[datetime.datetime] = None
+    installedDate: Optional[datetime.date] = None
     installerComment: Optional[str] = None
     poolId: Optional[int] = None
     poolRowNum: Optional[int] = None
