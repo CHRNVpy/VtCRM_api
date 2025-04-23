@@ -22,8 +22,10 @@ async def get_client_data_felix(account):
                 customer_portal_account cpa
             LEFT JOIN 
                 customer c ON c.id = cpa.customer_id
+            LEFT JOIN
+                connection co ON co.id = cpa.customer_id
             LEFT JOIN 
-                address a ON a.id = cpa.customer_id
+                address a ON a.id = co.address_id
             LEFT JOIN 
                 customer_contact cc ON cc.customer_id = cpa.customer_id
             WHERE 
@@ -97,8 +99,10 @@ async def get_clients_data_batch(client_ids):
             customer_portal_account cpa
         LEFT JOIN 
             customer c ON c.id = cpa.customer_id
+        LEFT JOIN
+            connection co ON co.id = cpa.customer_id
         LEFT JOIN 
-            address a ON a.id = cpa.customer_id
+            address a ON a.id = co.address_id
         LEFT JOIN 
             customer_contact cc ON cc.customer_id = cpa.customer_id
         WHERE 
