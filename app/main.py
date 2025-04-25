@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, status
@@ -15,6 +16,7 @@ from app.crud import init_db
 from app.services.auth_service import VtCRM_HTTPException
 from app.util.class_object import singleton
 
+logger = logging.getLogger('uvicorn')
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -88,8 +90,8 @@ class AppCreator:
             if request.method == "PATCH":
                 # Store original request body
                 body = await request.body()
-                # Log the body
-                print(f"Request body: {body.decode('utf-8')}")
+                # Log the URL and body
+                logger.info(f"PATCH {request.url.path} Request body: {body.decode('utf-8')}")
 
                 # Create a new copy of the request with the body content restored
                 # This is crucial so that route handlers can still read the body
