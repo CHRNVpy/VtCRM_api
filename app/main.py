@@ -82,6 +82,23 @@ class AppCreator:
                 }
             )
 
+        @self.app.middleware("http")
+        async def log_patch_request(request: Request, call_next):
+            # Only process PATCH requests
+            if request.method == "PATCH":
+                # Store original request body
+                body = await request.body()
+                # Log the body
+                print(f"Request body: {body.decode('utf-8')}")
+
+                # Create a new copy of the request with the body content restored
+                # This is crucial so that route handlers can still read the body
+                request._body = body
+
+            # Always continue with the request regardless
+            response = await call_next(request)
+            return response
+
 
 app_creator = AppCreator()
 app = app_creator.app
