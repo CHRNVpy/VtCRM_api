@@ -454,7 +454,7 @@ async def get_applications(pool_id: Optional[int] = None, filter = None) -> list
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(query, params)
                 results = await cur.fetchall()
-                # return results
+                # print(results)
                 processed_data = []
                 for item in results:
                     # Parse the images JSON string
