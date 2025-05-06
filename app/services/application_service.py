@@ -135,6 +135,10 @@ class AppService:
             raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                       error_details=ErrorDetails(
                                           code=f"Application doesn't exist with ID {updated_app.id}"))
+
+        if application.status == 'active':
+            updated_app.status = application.status
+
         await update_app(updated_app, application_id)
         await update_version('applications')
         if updated_app.equipments is not None:  # Check if equipments field is explicitly set
