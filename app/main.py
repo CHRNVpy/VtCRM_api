@@ -1,7 +1,7 @@
-import asyncio
-import logging
+import os
 from contextlib import asynccontextmanager
 
+import logfire
 from fastapi import FastAPI, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
@@ -15,8 +15,10 @@ from app.core.config import configs
 from app.crud import init_db
 from app.services.auth_service import VtCRM_HTTPException
 from app.util.class_object import singleton
+from dotenv import load_dotenv
 
-logger = logging.getLogger('uvicorn')
+load_dotenv()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -104,3 +106,14 @@ class AppCreator:
 
 app_creator = AppCreator()
 app = app_creator.app
+
+
+def request_attributes_mapper(request, attributes):
+    return {
+        "errors": attributes["errors"],
+        "values": attributes["values"],
+    }
+
+
+logfire.configure(token=os.getenv("LOGFIRE"))
+logfire.instrument_fastapi(app, request_attributes_mapper=request_attributes_mapper)
