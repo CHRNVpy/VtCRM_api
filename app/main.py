@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db.init_db()
@@ -106,12 +107,12 @@ class AppCreator:
 app_creator = AppCreator()
 app = app_creator.app
 
-def request_attributes_mapper(request, attributes):
 
-        return {
-            "errors": attributes["errors"],
-            "values": attributes["values"],
-        }
+def request_attributes_mapper(request, attributes):
+    return {
+        "errors": attributes["errors"],
+        "values": attributes["values"],
+    }
 
 
 logfire.configure(token=os.getenv("LOGFIRE"))
