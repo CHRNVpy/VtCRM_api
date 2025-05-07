@@ -37,12 +37,12 @@ async def get_client_data_felix(account):
         c.name AS fullName, 
         ad.name AS address, 
         GROUP_CONCAT(cc.num SEPARATOR ',') AS phone
-        FROM felix3.account AS a
-        LEFT JOIN felix3.contract AS cn ON a.contract_id = cn.id
-        LEFT JOIN felix3.customer AS c ON a.customer_id = c.id
-        LEFT JOIN felix3.customer_contact AS cc ON cc.customer_id = c.id AND cc.customer_contact_type = 11
-        LEFT JOIN felix3.connection AS con ON a.connection_id = con.id
-        LEFT JOIN felix3.address AS ad ON con.address_id = ad.id
+        FROM account AS a
+        LEFT JOIN contract AS cn ON a.contract_id = cn.id
+        LEFT JOIN customer AS c ON a.customer_id = c.id
+        LEFT JOIN customer_contact AS cc ON cc.customer_id = c.id AND cc.customer_contact_type = 11
+        LEFT JOIN connection AS con ON a.connection_id = con.id
+        LEFT JOIN address AS ad ON con.address_id = ad.id
         WHERE cn.num LIKE %s
         GROUP BY cn.id, cn.num, a.contract_id, c.name, ad.name;'''
 
@@ -133,12 +133,12 @@ async def get_clients_data_batch(client_ids):
         c.name AS fullName, 
         ad.name AS address, 
         GROUP_CONCAT(cc.num SEPARATOR ',') AS phone
-        FROM felix3.account AS a
-        LEFT JOIN felix3.contract AS cn ON a.contract_id = cn.id
-        LEFT JOIN felix3.customer AS c ON a.customer_id = c.id
-        LEFT JOIN felix3.customer_contact AS cc ON cc.customer_id = c.id AND cc.customer_contact_type = 11
-        LEFT JOIN felix3.connection AS con ON a.connection_id = con.id
-        LEFT JOIN felix3.address AS ad ON con.address_id = ad.id
+        FROM account AS a
+        LEFT JOIN contract AS cn ON a.contract_id = cn.id
+        LEFT JOIN customer AS c ON a.customer_id = c.id
+        LEFT JOIN customer_contact AS cc ON cc.customer_id = c.id AND cc.customer_contact_type = 11
+        LEFT JOIN connection AS con ON a.connection_id = con.id
+        LEFT JOIN address AS ad ON con.address_id = ad.id
         WHERE {like_clauses}
         GROUP BY cn.id, cn.num, a.contract_id, c.name, ad.name;'''
 
