@@ -204,7 +204,7 @@ class AppService:
         #     await self.approve_pool(application_id)
 
         if updated_app.steps:
-            await delete_steps(application_id)
+            # await delete_steps(application_id)
             for step in updated_app.steps:
 
                 step_id = await add_step(step, application_id)
