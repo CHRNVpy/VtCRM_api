@@ -240,6 +240,7 @@ async def get_application(app_id: int, steps: bool = False):
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
+                await cur.execute("SET SESSION group_concat_max_len = 1000000")
                 await cur.execute(query, app_id)
                 results = await cur.fetchone()
                 if not results:
