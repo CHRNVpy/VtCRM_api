@@ -172,69 +172,78 @@ class AppService:
                                    updated_app: UpdatedInstallerApplicationData,
                                    current_user: str,
                                    application_id: int):
-        # if updated_app.ver != await get_version('applications'):
-        #     raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-        #                               error_details=ErrorDetails(code="Version mismatch"))
-
+        # Validate application exists
         application = await get_application(application_id)
         if not application:
-            raise VtCRM_HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                      error_details=ErrorDetails(
-                                          code=f"Application doesn't exist with ID {updated_app.id}"))
+            raise VtCRM_HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                error_details=ErrorDetails(code=f"Application doesn't exist with ID {updated_app.id}")
+            )
 
+        # Get installer ID once
         installer_id = await get_user_id(current_user)
 
+        # Update app first (this needs to complete before finish_pool)
         await update_app(updated_app, application_id)
 
+        # Create tasks list for operations that can run in parallel
+        tasks = []
+
+        # Handle images if provided
         if updated_app.images is not None:
             if updated_app.images:
-                await asyncio.gather(*[
+                tasks.extend([
                     update_image(image_id, application_id, installer_id)
                     for image_id in updated_app.images
                 ])
             else:
-                await reset_images(application_id)
+                tasks.append(reset_images(application_id))
 
-        await update_version('applications')
+        # Add version update task
+        tasks.append(update_version('applications'))
+
+        # Run these tasks in parallel
+        await asyncio.gather(*tasks)
+
+        # Handle status-specific operations (after update_app is complete)
         if updated_app.status in ['finished', 'cancelled']:
             if updated_app.status == 'finished':
                 await reset_installer_equipment(application_id)
             await self.finish_pool(application_id)
-        # if updated_app.status == 'approved':
-        #     await self.approve_pool(application_id)
 
+        # Process steps if provided (this part needs sequential execution per step)
         if updated_app.steps:
             # await delete_steps(application_id)
             for step in updated_app.steps:
-
+                # Add step and get ID
                 step_id = await add_step(step, application_id)
 
-                image_tasks = [add_step_image(step_id,
-                                              application_id,
-                                              installer_id,
-                                              image_id) for image_id in step.images]
+                # Prepare step-related tasks
+                step_tasks = []
 
-                update_image_ver_tasks = [update_version('images') for _ in range(len(image_tasks))]
+                # Add image tasks
+                step_tasks.extend([
+                    add_step_image(step_id, application_id, installer_id, image_id)
+                    for image_id in step.images
+                ])
 
-                equipment_tasks = [add_step_equipment(step_id,
-                                                      application_id,
-                                                      equipment_id) for equipment_id in step.equipments]
+                # Add equipment tasks
+                step_tasks.extend([
+                    add_step_equipment(step_id, application_id, equipment_id)
+                    for equipment_id in step.equipments
+                ])
 
-                update_equipment_ver_tasks = [update_version('equipment') for _ in range(len(equipment_tasks))]
+                # Add a single version update for images and equipment
+                if step.images:
+                    step_tasks.append(update_version('images'))
+                if step.equipments:
+                    step_tasks.append(update_version('equipment'))
 
-                await asyncio.gather(*image_tasks, *update_image_ver_tasks, *equipment_tasks, *update_equipment_ver_tasks)
+                # Execute all step tasks in parallel
+                await asyncio.gather(*step_tasks)
 
-                # return Application(appVer=await get_version('applications'),
-                #                    # imageVer=await get_version('images'),
-                #                    entity=await self.get_application(application_id, steps=True))
-
+        # Return the updated application
         return await self.get_app(application_id)
-
-        # updated_application = await get_application(application_id, steps=True)
-        #
-        # return Application(appVer=await get_version('applications'),
-        #                    # imageVer=await get_version('images'),
-        #                    entity=updated_application)
 
 
     async def get_pools(self,
