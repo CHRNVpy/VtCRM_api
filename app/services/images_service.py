@@ -50,7 +50,7 @@ class ImagesService:
         month = current_date.strftime("%m")
 
         # Create the directory structure
-        upload_dir = Path("/mnt/disc2/uploads") / year / month
+        upload_dir = Path("/mnt/disk2/uploads") / year / month
         upload_dir.mkdir(parents=True, exist_ok=True)
 
         # Generate a unique filename to avoid overwrites

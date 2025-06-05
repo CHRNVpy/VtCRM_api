@@ -50,7 +50,7 @@ async def get_client_data_felix(account):
             SELECT
             pa.num AS account, 
             c.name AS fullName, 
-             ad.name AS addr, 
+            ad.name AS address, 
             GROUP_CONCAT(cc.num SEPARATOR ',') AS phone
             FROM account AS a
             LEFT JOIN contract AS cn ON a.contract_id = cn.id
