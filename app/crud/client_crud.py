@@ -31,22 +31,38 @@ async def get_client_data_felix(account):
     #         WHERE
     #             cpa.login = %s'''
 
-    query = '''
-        SELECT
-        CAST(SUBSTRING_INDEX(cn.num, '-', -1) AS UNSIGNED) AS account, 
-        c.name AS fullName, 
-        ad.name AS address, 
-        GROUP_CONCAT(cc.num SEPARATOR ',') AS phone
-        FROM account AS a
-        LEFT JOIN contract AS cn ON a.contract_id = cn.id
-        LEFT JOIN customer AS c ON a.customer_id = c.id
-        LEFT JOIN customer_contact AS cc ON cc.customer_id = c.id AND cc.customer_contact_type = 11
-        LEFT JOIN connection AS con ON a.connection_id = con.id
-        LEFT JOIN address AS ad ON con.address_id = ad.id
-        WHERE cn.num LIKE %s
-        GROUP BY cn.id, cn.num, a.contract_id, c.name, ad.name;'''
+    # query = '''
+    #     SELECT
+    #     CAST(SUBSTRING_INDEX(cn.num, '-', -1) AS UNSIGNED) AS account,
+    #     c.name AS fullName,
+    #     ad.name AS address,
+    #     GROUP_CONCAT(cc.num SEPARATOR ',') AS phone
+    #     FROM account AS a
+    #     LEFT JOIN contract AS cn ON a.contract_id = cn.id
+    #     LEFT JOIN customer AS c ON a.customer_id = c.id
+    #     LEFT JOIN customer_contact AS cc ON cc.customer_id = c.id AND cc.customer_contact_type = 11
+    #     LEFT JOIN connection AS con ON a.connection_id = con.id
+    #     LEFT JOIN address AS ad ON con.address_id = ad.id
+    #     WHERE cn.num LIKE %s
+    #     GROUP BY cn.id, cn.num, a.contract_id, c.name, ad.name;'''
 
-    params = (f'%{account}%',)
+    query = '''
+            SELECT
+            pa.num AS account, 
+            c.name AS fullName, 
+             ad.name AS addr, 
+            GROUP_CONCAT(cc.num SEPARATOR ',') AS phone
+            FROM felix3.account AS a
+            LEFT JOIN felix3.contract AS cn ON a.contract_id = cn.id
+            LEFT JOIN felix3.customer AS c ON a.customer_id = c.id
+            LEFT JOIN felix3.customer_contact AS cc ON cc.customer_id = c.id AND cc.customer_contact_type = 11
+            LEFT JOIN felix3.personal_account AS pa ON pa.id=a.personal_account_id
+            LEFT JOIN felix3.connection AS con ON a.connection_id = con.id
+            LEFT JOIN felix3.address AS ad ON con.address_id = ad.id
+            WHERE pa.num = %s
+            GROUP BY cn.id, c.name, cn.num, pa.num, ad.name;'''
+
+    params = (account,)
 
     async with aiomysql.create_pool(**configs.EXT_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
@@ -103,47 +119,26 @@ async def get_clients_data_batch(client_ids):
     unique_client_ids = list(set(filter(None, client_ids)))
     int_ids = [int(cid) for cid in unique_client_ids]
 
-    client_data_map = {client_id: ClientData() for client_id in client_ids}
+    client_data_map = {}
 
-    # First try Felix DB for all clients
-    # felix_query = '''
-    #     SELECT
-    #         CAST(cpa.login AS SIGNED) AS account,
-    #         c.name AS fullName,
-    #         cc.num AS phone,
-    #         a.name AS address
-    #     FROM
-    #         customer_portal_account cpa
-    #     LEFT JOIN
-    #         customer c ON c.id = cpa.customer_id
-    #     LEFT JOIN
-    #         connection co ON co.id = cpa.customer_id
-    #     LEFT JOIN
-    #         address a ON a.id = co.address_id
-    #     LEFT JOIN
-    #         customer_contact cc ON cc.customer_id = cpa.customer_id
-    #     WHERE
-    #         cpa.login IN ({})
-    # '''.format(','.join(['%s'] * len(unique_client_ids)))
-
-    like_clauses = ' OR '.join(['cn.num LIKE %s'] * len(int_ids))
-    felix_query = f'''
+    felix_query = '''
         SELECT
-        CAST(SUBSTRING_INDEX(cn.num, '-', -1) AS UNSIGNED) AS account, 
+        pa.num AS account, 
         c.name AS fullName, 
-        ad.name AS address, 
+         ad.name AS address, 
         GROUP_CONCAT(cc.num SEPARATOR ',') AS phone
-        FROM account AS a
-        LEFT JOIN contract AS cn ON a.contract_id = cn.id
-        LEFT JOIN customer AS c ON a.customer_id = c.id
-        LEFT JOIN customer_contact AS cc ON cc.customer_id = c.id AND cc.customer_contact_type = 11
-        LEFT JOIN connection AS con ON a.connection_id = con.id
-        LEFT JOIN address AS ad ON con.address_id = ad.id
-        WHERE {like_clauses}
-        GROUP BY cn.id, cn.num, a.contract_id, c.name, ad.name;'''
+        FROM felix3.account AS a
+        LEFT JOIN felix3.contract AS cn ON a.contract_id = cn.id
+        LEFT JOIN felix3.customer AS c ON a.customer_id = c.id
+        LEFT JOIN felix3.customer_contact AS cc ON cc.customer_id = c.id AND cc.customer_contact_type = 11
+        LEFT JOIN felix3.personal_account AS pa ON pa.id=a.personal_account_id
+        LEFT JOIN felix3.connection AS con ON a.connection_id = con.id
+        LEFT JOIN felix3.address AS ad ON con.address_id = ad.id
+        WHERE pa.num IN ({})
+        GROUP BY cn.id, c.name, cn.num, pa.num, ad.name;'''.format(','.join(['%s'] * len(unique_client_ids)))
 
     # Add prefix before binding
-    params = [f'%{num}%' for num in int_ids]
+    params = int_ids
 
     async with aiomysql.create_pool(**configs.EXT_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
@@ -196,5 +191,5 @@ async def get_clients_data_batch(client_ids):
 
     return client_data_map
 
-# print(asyncio.run(get_client_data_felix(9749)))
-# print(asyncio.run(get_clients_data_batch([9749, 9750, 11310])))
+# print(asyncio.run(get_client_data_felix(19326)))
+# print(asyncio.run(get_clients_data_batch([19326, 9749, 9750, 11310])))

@@ -81,6 +81,17 @@ class UpdatedInstallerApplicationData(BaseModel):
     images: Optional[List[int]] = None
     steps: Optional[List[LineSetupStep]] = None
 
+    @field_validator('client')
+    @classmethod
+    def validate_client(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, int):
+            return v
+        if isinstance(v, str) and v.isdigit():
+            return v
+        raise ValueError("client must be an integer or a string containing only digits")
+
 
 class ApplicationData(BaseModel):
     id: Optional[int] = None

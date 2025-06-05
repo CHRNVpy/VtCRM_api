@@ -53,7 +53,7 @@ class AppCreator:
             return {"status": "service is working"}
 
         self.app.include_router(v1_routers, prefix=configs.API_V1_STR)
-        self.app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+        self.app.mount("/uploads", StaticFiles(directory="/mnt/disk2/uploads"), name="uploads")
 
         # self.app.include_router(v2_routers, prefix=configs.API_V2_STR)
 
