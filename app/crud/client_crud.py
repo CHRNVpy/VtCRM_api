@@ -52,13 +52,13 @@ async def get_client_data_felix(account):
             c.name AS fullName, 
              ad.name AS addr, 
             GROUP_CONCAT(cc.num SEPARATOR ',') AS phone
-            FROM felix3.account AS a
-            LEFT JOIN felix3.contract AS cn ON a.contract_id = cn.id
-            LEFT JOIN felix3.customer AS c ON a.customer_id = c.id
-            LEFT JOIN felix3.customer_contact AS cc ON cc.customer_id = c.id AND cc.customer_contact_type = 11
-            LEFT JOIN felix3.personal_account AS pa ON pa.id=a.personal_account_id
-            LEFT JOIN felix3.connection AS con ON a.connection_id = con.id
-            LEFT JOIN felix3.address AS ad ON con.address_id = ad.id
+            FROM account AS a
+            LEFT JOIN contract AS cn ON a.contract_id = cn.id
+            LEFT JOIN customer AS c ON a.customer_id = c.id
+            LEFT JOIN customer_contact AS cc ON cc.customer_id = c.id AND cc.customer_contact_type = 11
+            LEFT JOIN personal_account AS pa ON pa.id=a.personal_account_id
+            LEFT JOIN connection AS con ON a.connection_id = con.id
+            LEFT JOIN address AS ad ON con.address_id = ad.id
             WHERE pa.num = %s
             GROUP BY cn.id, c.name, cn.num, pa.num, ad.name;'''
 
@@ -127,13 +127,13 @@ async def get_clients_data_batch(client_ids):
         c.name AS fullName, 
          ad.name AS address, 
         GROUP_CONCAT(cc.num SEPARATOR ',') AS phone
-        FROM felix3.account AS a
-        LEFT JOIN felix3.contract AS cn ON a.contract_id = cn.id
-        LEFT JOIN felix3.customer AS c ON a.customer_id = c.id
-        LEFT JOIN felix3.customer_contact AS cc ON cc.customer_id = c.id AND cc.customer_contact_type = 11
-        LEFT JOIN felix3.personal_account AS pa ON pa.id=a.personal_account_id
-        LEFT JOIN felix3.connection AS con ON a.connection_id = con.id
-        LEFT JOIN felix3.address AS ad ON con.address_id = ad.id
+        FROM account AS a
+        LEFT JOIN contract AS cn ON a.contract_id = cn.id
+        LEFT JOIN customer AS c ON a.customer_id = c.id
+        LEFT JOIN customer_contact AS cc ON cc.customer_id = c.id AND cc.customer_contact_type = 11
+        LEFT JOIN personal_account AS pa ON pa.id=a.personal_account_id
+        LEFT JOIN connection AS con ON a.connection_id = con.id
+        LEFT JOIN address AS ad ON con.address_id = ad.id
         WHERE pa.num IN ({})
         GROUP BY cn.id, c.name, cn.num, pa.num, ad.name;'''.format(','.join(['%s'] * len(unique_client_ids)))
 
