@@ -3,7 +3,7 @@ import string
 
 from app.crud.admin_crud import is_admin, add_installer
 from app.crud.installer_crud import get_installer_data_by_hash, get_all_installers_data, hash_exists, \
-    get_installer_data_by_id, update_installer
+    get_installer_data_by_id, update_installer, soft_delete_installer
 from app.crud.admin_crud import get_version, update_version
 from app.schema.error_schema import ErrorDetails
 from app.schema.installer_schema import NewInstaller, NewInstallerResponse, Installers, CurrentInstaller, \
@@ -76,12 +76,12 @@ class InstallerService:
             updated_installer = await get_installer_data_by_hash(new_installer.hash)
             return NewInstallerResponse(ver=await get_version('users'), entity=updated_installer)
 
-    async def get_all_installers(self, current_user: str) -> Installers:
+    async def get_all_installers(self, current_user: str, deleted: bool) -> Installers:
         if not await is_admin(current_user):
             raise VtCRM_HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                       error_details=ErrorDetails(code="You're not an admin"))
         version = await get_version('users')
-        installers = await get_all_installers_data()
+        installers = await get_all_installers_data(deleted)
         return Installers(ver=version, entities=installers)
 
     async def get_installer(self, current_user: str, installer_id: int):
@@ -106,3 +106,14 @@ class InstallerService:
         await update_version('users')
         updated_installer = await get_installer_data_by_id(installer_id)
         return CurrentInstaller(ver=await get_version('users'), entity=updated_installer)
+
+    async def delete_installer(self, installer_id: int):
+
+        installer = await get_installer_data_by_id(installer_id)
+        if not installer:
+            raise VtCRM_HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                      error_details=ErrorDetails(code="Installer ID not found"))
+
+        await soft_delete_installer(installer_id)
+        installer = await get_installer_data_by_id(installer_id)
+        return CurrentInstaller(ver=await get_version('users'), entity=installer)

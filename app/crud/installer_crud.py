@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import random
 from typing import List, Union
 
@@ -110,14 +111,15 @@ async def get_installer_data_by_id(installer_id: int):
                           phone AS phone,
                           status As status,
                           role AS role,
-                          id AS user_id,
-                          hash AS hash
+                          id AS id,
+                          hash AS hash,
+                          deleted_at AS deleted_at
                         FROM users
                         WHERE id = %s''', (installer_id,))
                 result = await cur.fetchone()
                 return Installer(login=result[0], password=result[1], firstname=result[2], middlename=result[3],
                                  lastname=result[4], phone=result[5], status=result[6], role=result[7],
-                                 id=result[8], hash=result[9]) if result else None
+                                 id=result[8], hash=result[9], deleted_at=result[10]) if result else None
 
 
 async def hash_exists(hash: str):
@@ -129,7 +131,7 @@ async def hash_exists(hash: str):
                 return True if result else False
 
 
-async def get_all_installers_data():
+async def get_all_installers_data(deleted: bool):
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
@@ -144,7 +146,8 @@ async def get_all_installers_data():
                           status As status,
                           role AS role,
                           id AS user_id,
-                          hash AS hash
+                          hash AS hash,
+                          deleted_at AS deleted_at
                         FROM users
                         WHERE role = 'installer' AND status = 'active'
                         ORDER BY 
@@ -154,10 +157,13 @@ async def get_all_installers_data():
                           END, 
                           lastname''')
                 results = await cur.fetchall()
-                return [Installer(login=result[0], password=result[1], firstname=result[2], middlename=result[3],
+                installers = [Installer(login=result[0], password=result[1], firstname=result[2], middlename=result[3],
                                   lastname=result[4], phone=result[5], status=result[6], role=result[7], id=result[8],
-                                  hash=result[9])
+                                  hash=result[9], deleted_at=result[10])
                         for result in results if results]
+                if not deleted:
+                    installers = [i for i in installers if i.deleted_at is None]
+                return installers
 
 async def get_free_installers_data():
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
@@ -226,6 +232,18 @@ async def update_installer(updated_installer: Union[NewInstaller, UpdateInstalle
 
     # Add the WHERE clause to specify the entity to update
     query += f" WHERE id = {installer_id};"
+
+    async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(query, params)
+                await conn.commit()
+
+async def soft_delete_installer(installer_id: int):
+
+    query = "UPDATE users SET deleted_at = %s WHERE id = %s"
+    now = datetime.datetime.now()
+    params = [now, installer_id]
 
     async with aiomysql.create_pool(**configs.APP_DB_CONFIG) as pool:
         async with pool.acquire() as conn:

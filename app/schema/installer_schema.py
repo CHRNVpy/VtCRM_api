@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional, Union, List, Literal
 
 from pydantic import BaseModel
@@ -41,6 +42,7 @@ class Installer(BaseModel):
     status: str
     role: str
     hash: str
+    deleted_at: Optional[datetime.datetime] = None
 
 
 class CurrentInstaller(BaseModel):

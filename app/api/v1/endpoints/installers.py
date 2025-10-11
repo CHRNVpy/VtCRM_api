@@ -15,8 +15,9 @@ service = InstallerService()
 @router.get("/installer-collection",
             response_model=InstallersResponse,
             responses={401: {"description": "Incorrect username or password"}})
-async def get_installers(current_user: str = Depends(get_current_user)):
-    response = await service.get_all_installers(current_user)
+async def get_installers(current_user: str = Depends(get_current_user),
+                         deleted: bool = Query(False, description="Return deleted if set to True")):
+    response = await service.get_all_installers(current_user, deleted)
     return InstallersResponse(status='ok', data=response)
 
 
@@ -43,4 +44,12 @@ async def update_installer(updated_installer: UpdateInstaller,
                            installer_id: int,
                            current_user: str = Depends(get_current_user)):
     response = await service.update_installer(updated_installer, installer_id)
+    return InstallerResponse(status='ok', data=response)
+
+@router.delete("/installer/{installer_id}",
+              # response_model=InstallerResponse,
+              responses={401: {"description": "Incorrect username or password"}})
+async def update_installer(installer_id: int,
+                           current_user: str = Depends(get_current_user)):
+    response = await service.delete_installer(installer_id)
     return InstallerResponse(status='ok', data=response)
